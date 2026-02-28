@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class SoldatenWohnenApplication
 
 fun main(args: Array<String>) {
-	runApplication<SoldatenWohnenApplication>(*args)
+    runApplication<SoldatenWohnenApplication>(*args)
 }
