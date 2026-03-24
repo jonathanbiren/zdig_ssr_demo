@@ -1,3 +1,25 @@
+# Every time you want to work on this project, you need to run: 
+
+#### 1. Start the database (if not already running)
+```terminal
+docker compose up -d
+docker compose down (To tear the container back down) 
+```
+
+#### 2. Start the backend (in a terminal, from the backend/ directory)
+```terminal
+./mvnw spring-boot:run
+```
+#### Spring Boot starts → Flyway runs any new migrations → app ready on :8080
+
+#### 3. Start the frontend (in another terminal, from the frontend/ directory)
+```terminal
+pnpm dev
+```
+
+#### Vite starts → frontend ready on :3000, proxies /api calls to :8080
+
+
 # How this monorepo works
 
 Your repository is now two completely independent projects that happen to live under one Git repo. That's it. There is no monorepo tool (no Nx, no Turborepo, no Lerna) coordinating them. The frontend/ and backend/ directories are as unaware of each other as two strangers on a bus. They share a .gitignore and a Git history, and nothing else.
@@ -40,15 +62,17 @@ You run them in two separate terminals when developing. They're independent proc
 
 I configured a proxy in frontend/vite.config.ts:
 ```json
-server: {
-port: 3000,
-proxy: {
-'/api': {
-target: 'http://localhost:8080',
-changeOrigin: true,
-},
-},
-},
+{
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      }
+    }
+  }
+}
 ```
 During development, when the frontend makes a request to /api/anything, Vite intercepts it and forwards it to localhost:8080 (where Spring Boot is running). The browser only talks to localhost:3000 -- it never sees the backend directly. This avoids CORS issues entirely during development.
 In production, you'd deploy these separately and configure your reverse proxy (nginx, etc.) to route /api to the backend and everything else to the frontend's static files.

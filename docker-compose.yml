@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: soldaten-wohnen-db
+    environment:
+      POSTGRES_DB: soldaten_wohnen
+      POSTGRES_USER: soldaten_wohnen
+      POSTGRES_PASSWORD: soldaten_wohnen
+    ports:
+      - "5432:5432"
+    volumes:
+      - soldaten_wohnen_data:/var/lib/postgresql/data
+
+volumes:
+  soldaten_wohnen_data:
