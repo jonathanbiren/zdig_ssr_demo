@@ -2,13 +2,13 @@
 
 #### 1. Start the database (if not already running)
 ```terminal
-docker compose up -d
+docker compose up -d (starts the docker container with you postgres instance running inside)
 docker compose down (To tear the container back down) 
 ```
 
 #### 2. Start the backend (in a terminal, from the backend/ directory)
 ```terminal
-./mvnw spring-boot:run
+./mvnw spring-boot:run (if you only have maven installed locally) 
 ```
 #### Spring Boot starts → Flyway runs any new migrations → app ready on :8080
 
