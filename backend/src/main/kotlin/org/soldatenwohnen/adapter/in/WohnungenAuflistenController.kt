@@ -1,7 +1,7 @@
-package org.soldatenwohnen.katalog.adapter.`in`
+package org.soldatenwohnen.adapter.`in`
 
-import org.soldatenwohnen.katalog.application.port.`in`.WohnungenAuflistenUseCase
-import org.soldatenwohnen.katalog.domain.model.Wohnung
+import org.soldatenwohnen.core.katalog.application.port.`in`.WohnungenAuflistenUseCase
+import org.soldatenwohnen.core.katalog.domain.model.Wohnung
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping

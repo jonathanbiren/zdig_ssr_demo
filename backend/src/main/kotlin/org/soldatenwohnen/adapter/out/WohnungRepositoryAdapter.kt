@@ -1,11 +1,11 @@
-package org.soldatenwohnen.katalog.adapter.out
+package org.soldatenwohnen.adapter.out
 
-import org.soldatenwohnen.katalog.application.port.out.WohnungRepository
-import org.soldatenwohnen.katalog.domain.model.Adresse
-import org.soldatenwohnen.katalog.domain.model.Mietpreis
-import org.soldatenwohnen.katalog.domain.model.Wohnung
-import org.soldatenwohnen.katalog.domain.model.WohnungId
-import org.soldatenwohnen.katalog.domain.model.WohnungStatus
+import org.soldatenwohnen.core.katalog.application.port.out.WohnungRepository
+import org.soldatenwohnen.core.katalog.domain.model.Adresse
+import org.soldatenwohnen.core.katalog.domain.model.Mietpreis
+import org.soldatenwohnen.core.katalog.domain.model.Wohnung
+import org.soldatenwohnen.core.katalog.domain.model.WohnungId
+import org.soldatenwohnen.core.katalog.domain.model.WohnungStatus
 import org.springframework.data.annotation.Id
 import org.springframework.data.jdbc.repository.query.Query
 import org.springframework.data.relational.core.mapping.Table

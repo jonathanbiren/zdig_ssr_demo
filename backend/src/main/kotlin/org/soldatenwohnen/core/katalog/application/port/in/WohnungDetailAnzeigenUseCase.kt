@@ -1,7 +1,7 @@
-package org.soldatenwohnen.katalog.application.port.`in`
+package org.soldatenwohnen.core.katalog.application.port.`in`
 
-import org.soldatenwohnen.katalog.domain.model.Wohnung
-import org.soldatenwohnen.katalog.domain.model.WohnungId
+import org.soldatenwohnen.core.katalog.domain.model.Wohnung
+import org.soldatenwohnen.core.katalog.domain.model.WohnungId
 
 // Inbound port for the "view apartment details" use case.
 interface WohnungDetailAnzeigenUseCase {

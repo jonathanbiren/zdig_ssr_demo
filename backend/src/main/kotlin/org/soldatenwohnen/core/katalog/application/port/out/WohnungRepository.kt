@@ -1,8 +1,7 @@
-package org.soldatenwohnen.katalog.application.port.out
+package org.soldatenwohnen.core.katalog.application.port.out
 
-import org.soldatenwohnen.katalog.domain.model.Wohnung
-import org.soldatenwohnen.katalog.domain.model.WohnungId
-import org.soldatenwohnen.katalog.domain.model.WohnungStatus
+import org.soldatenwohnen.core.katalog.domain.model.Wohnung
+import org.soldatenwohnen.core.katalog.domain.model.WohnungId
 
 // Outbound port: the contract the application layer uses to access persistence.
 // The application and domain layers depend on this interface.

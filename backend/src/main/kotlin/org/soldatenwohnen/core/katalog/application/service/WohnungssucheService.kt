@@ -1,10 +1,10 @@
-package org.soldatenwohnen.katalog.application.service
+package org.soldatenwohnen.core.katalog.application.service
 
-import org.soldatenwohnen.katalog.application.port.`in`.WohnungDetailAnzeigenUseCase
-import org.soldatenwohnen.katalog.application.port.`in`.WohnungenAuflistenUseCase
-import org.soldatenwohnen.katalog.application.port.out.WohnungRepository
-import org.soldatenwohnen.katalog.domain.model.Wohnung
-import org.soldatenwohnen.katalog.domain.model.WohnungId
+import org.soldatenwohnen.core.katalog.application.port.`in`.WohnungDetailAnzeigenUseCase
+import org.soldatenwohnen.core.katalog.application.port.`in`.WohnungenAuflistenUseCase
+import org.soldatenwohnen.core.katalog.application.port.out.WohnungRepository
+import org.soldatenwohnen.core.katalog.domain.model.Wohnung
+import org.soldatenwohnen.core.katalog.domain.model.WohnungId
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

@@ -7,6 +7,7 @@ docker compose down (To tear the container back down)
 ```
 
 #### 2. Start the backend (in a terminal, from the backend/ directory)
+info.app.name=soldaten-wohnen
 ```terminal
 ./mvnw spring-boot:run (if you only have maven installed locally) 
 ```

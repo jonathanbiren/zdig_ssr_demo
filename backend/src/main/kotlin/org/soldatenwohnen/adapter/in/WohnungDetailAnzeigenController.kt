@@ -1,8 +1,8 @@
-package org.soldatenwohnen.katalog.adapter.`in`
+package org.soldatenwohnen.adapter.`in`
 
-import org.soldatenwohnen.katalog.application.port.`in`.WohnungDetailAnzeigenUseCase
-import org.soldatenwohnen.katalog.domain.model.Wohnung
-import org.soldatenwohnen.katalog.domain.model.WohnungId
+import org.soldatenwohnen.core.katalog.application.port.`in`.WohnungDetailAnzeigenUseCase
+import org.soldatenwohnen.core.katalog.domain.model.Wohnung
+import org.soldatenwohnen.core.katalog.domain.model.WohnungId
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -15,11 +15,11 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/katalog/wohnungen")
 class WohnungDetailAnzeigenController(
-    private val wohnungDetailAnzeigen: WohnungDetailAnzeigenUseCase
+    private val wohnungDetailService: WohnungDetailAnzeigenUseCase
 ) {
     @GetMapping("/{id}")
     fun detail(@PathVariable id: UUID): ResponseEntity<WohnungDetailResponse> {
-        val wohnung = wohnungDetailAnzeigen.detailAnzeigen(WohnungId(id))
+        val wohnung = wohnungDetailService.detailAnzeigen(WohnungId(id))
             ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(wohnung.toDetail())
     }

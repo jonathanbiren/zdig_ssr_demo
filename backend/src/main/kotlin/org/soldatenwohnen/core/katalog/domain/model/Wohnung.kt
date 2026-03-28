@@ -1,4 +1,4 @@
-package org.soldatenwohnen.katalog.domain.model
+package org.soldatenwohnen.core.katalog.domain.model
 
 import java.math.BigDecimal
 import java.time.Instant

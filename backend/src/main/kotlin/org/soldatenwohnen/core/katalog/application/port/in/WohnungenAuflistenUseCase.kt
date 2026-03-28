@@ -1,6 +1,6 @@
-package org.soldatenwohnen.katalog.application.port.`in`
+package org.soldatenwohnen.core.katalog.application.port.`in`
 
-import org.soldatenwohnen.katalog.domain.model.Wohnung
+import org.soldatenwohnen.core.katalog.domain.model.Wohnung
 
 // Inbound port for the "view list of all apartments" use case.
 // The controller depends on this interface, never on the service class directly.
