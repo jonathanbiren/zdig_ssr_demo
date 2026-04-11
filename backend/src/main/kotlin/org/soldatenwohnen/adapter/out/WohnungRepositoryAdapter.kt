@@ -1,5 +1,6 @@
 package org.soldatenwohnen.adapter.out
 
+import org.soldatenwohnen.adapter.`in`.TestController
 import org.soldatenwohnen.core.katalog.application.port.out.WohnungRepository
 import org.soldatenwohnen.core.katalog.domain.model.Adresse
 import org.soldatenwohnen.core.katalog.domain.model.Mietpreis
@@ -10,6 +11,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.jdbc.repository.query.Query
 import org.springframework.data.relational.core.mapping.Table
 import org.springframework.data.repository.CrudRepository
+import org.springframework.data.repository.PagingAndSortingRepository
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal
@@ -17,8 +19,20 @@ import java.time.Instant
 import java.util.UUID
 
 // ── Spring Data JDBC persistence model ───────────────────────────────────────
-// This is a separate class from the domain model.
-// It maps 1:1 to the database table. The domain model knows nothing about it.
+
+/* This is a separate class from the domain model.
+ * It maps 1:1 to a database table that was created by a Flyway migration (V1__create_wohnungen.sql).
+ * The @Table annotation does NOT create the table -- it only tells Spring Data JDBC which table to
+ * read from and write to. The table must already exist (Flyway ensures it does on startup).
+ * The domain model knows nothing about this class.
+ *
+ * Spring Data JDBC uses this class as the aggregate root for persistence. If it had child entities
+ * (collections of other @Table-annotated classes), Spring Data JDBC would load, save, and delete
+ * the entire object graph as one unit through this root.
+ * You can basically set up a lot of the behavior of the repository in these data classes, which represent the
+ * output model of the database.
+ *
+ */
 
 @Table("wohnungen")
 data class WohnungRow(
@@ -36,6 +50,7 @@ data class WohnungRow(
     val erstelltAm: Instant
 ) {
     // Maps the database row back to the rich domain model.
+    // We have a dependency on the domain model (Wohnung) here. You will have to evaluate what mapping strategy this is.
     fun toDomain(): Wohnung = Wohnung(
         id = WohnungId(id),
         titel = titel,
@@ -55,28 +70,37 @@ data class WohnungRow(
 }
 
 // ── Spring Data JDBC repository interface ────────────────────────────────────
-// Spring auto-generates the implementation at startup.
+// Why only an interface? Spring auto-generates the full implementation at startup -- you never write a class.
+// CrudRepository<T, ID> tells Spring Data JDBC: T is the aggregate root type (WohnungRow),
+// ID is the primary key type (UUID). It does NOT create a table -- the table must already exist via Flyway.
+// The interface gives you findById, save, delete, existsById, findAll, count, and more for free.
 
 @Repository
 interface WohnungJdbcRepository : CrudRepository<WohnungRow, UUID> {
 
+    // You can write custom Queries through the use of the @Query annotation
     // The index on (status, erstellt_am DESC) in V1 migration makes this fast.
     @Query("SELECT * FROM wohnungen WHERE status = 'VEROEFFENTLICHT' ORDER BY erstellt_am DESC")
     fun findAlleVeroeffentlichten(): List<WohnungRow>
+
+
 }
 
 // ── Adapter: implements the outbound port ────────────────────────────────────
-// Bridges between the application's WohnungRepository interface
-// and the Spring Data JDBC implementation above.
+// Bridges between the application's WohnungRepository interface. WohnungRepositoryAdapter implements the outbound port
+// and uses the WohnungJdbcRepository to access the database. Maybe this is too much of an abstraction?
 
 @Component
 class WohnungRepositoryAdapter(
     private val jdbcRepository: WohnungJdbcRepository
 ) : WohnungRepository {
 
+    // Your repository adapter is auto-wired to a Spring data jdbc repository to which it simply relays the calls
     override fun findAlleVeroeffentlichten(): List<Wohnung> =
-        jdbcRepository.findAlleVeroeffentlichten().map { it.toDomain() }
+        jdbcRepository.findAll().map { it.toDomain() }
+//        jdbcRepository.findAlleVeroeffentlichten().map { it.toDomain() }
 
     override fun findById(id: WohnungId): Wohnung? =
         jdbcRepository.findById(id.value).orElse(null)?.toDomain()
+
 }
