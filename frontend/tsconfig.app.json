@@ -19,6 +19,8 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
 
     /* --- Interop --- */
     "allowSyntheticDefaultImports": true,

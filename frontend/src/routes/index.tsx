@@ -1,14 +1,16 @@
-import { createFileRoute } from '@tanstack/solid-router'
+import {createFileRoute} from '@tanstack/solid-router'
 
 export const Route = createFileRoute('/')({
-  component: HomePage,
+    component: HomePage,
 })
 
 function HomePage() {
-  return (
-    <div>
-      <h2 class="text-2xl font-bold">Willkommen</h2>
-      <p class="mt-2 text-gray-600">Soldaten Wohnen - Startseite</p>
-    </div>
-  )
+
+
+    return (
+        <div>
+            <div class=""><h1>This will be you navigation</h1></div>
+            <div><h1>This will be your hero section</h1></div>
+        </div>
+    )
 }

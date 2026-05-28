@@ -188,6 +188,22 @@ pnpm dev
 # Frontend starts on :3000, proxies /api/* requests to :8080
 ```
 
+### Updating Dependencies
+
+```bash
+# Update the backend
+
+# Update dependencies
+mvn versions:update-properties
+
+mvn versions:use-latest-releases
+
+mvn versions:update-dependencies
+
+# Verify everything still works
+mvn spring-boot:run
+```
+
 ### Adding a new feature that requires a schema change
 
 ```bash
