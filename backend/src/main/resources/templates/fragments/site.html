@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' | Soldaten Wohnen'">Soldaten Wohnen</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/webjars/htmx.org/2.0.6/dist/htmx.min.js}" defer></script>
+</head>
+<body>
+<header th:fragment="header" class="border-b border-white/10 bg-slate-950/85 backdrop-blur">
+    <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <a th:href="@{/wohnungen}" class="group flex items-center gap-3">
+            <span class="grid size-10 place-items-center rounded-2xl bg-lime-300 font-black text-slate-950 shadow-lg shadow-lime-300/20">SW</span>
+            <span>
+                <span class="block text-sm font-semibold uppercase tracking-[0.28em] text-lime-200">Soldaten Wohnen</span>
+                <span class="block text-xs text-slate-400">Wohnraumvermittlung fuer den Standortwechsel</span>
+            </span>
+        </a>
+        <div class="hidden items-center gap-6 text-sm text-slate-300 sm:flex">
+            <a th:href="@{/wohnungen}" class="hover:text-white">Wohnungen</a>
+            <a href="mailto:vermittlung@soldaten-wohnen.local" class="rounded-full border border-white/15 px-4 py-2 hover:border-lime-200 hover:text-white">Kontakt</a>
+        </div>
+    </nav>
+</header>
+</body>
+</html>

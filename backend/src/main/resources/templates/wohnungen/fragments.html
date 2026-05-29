@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section id="wohnungen-list" th:fragment="wohnungListe" aria-live="polite">
+    <div th:if="${#lists.isEmpty(wohnungen)}" class="rounded-[2rem] border border-white/10 bg-white/[0.06] p-10 text-center">
+        <p class="text-xl font-bold text-white">Keine passenden Wohnungen gefunden.</p>
+        <p class="mt-2 text-slate-400">Versuche es mit einer anderen Stadt, PLZ oder einem allgemeineren Suchbegriff.</p>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(wohnungen)}" class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <article th:each="wohnung : ${wohnungen}" class="group overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.06] shadow-xl shadow-black/20 transition hover:-translate-y-1 hover:border-lime-200/50">
+            <div class="h-40 bg-[radial-gradient(circle_at_20%_20%,rgba(190,242,100,0.3),transparent_12rem),linear-gradient(135deg,rgba(15,23,42,1),rgba(51,65,85,1))]"></div>
+            <div class="p-6">
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-lime-200" th:text="${wohnung.postleitzahl} + ' ' + ${wohnung.stadt}">53111 Bonn</p>
+                <h3 class="mt-3 text-xl font-black leading-tight text-white" th:text="${wohnung.titel}">Wohnungstitel</h3>
+                <p class="mt-3 line-clamp-3 text-sm leading-6 text-slate-300" th:text="${wohnung.beschreibungKurz}">Kurzbeschreibung</p>
+
+                <dl class="mt-6 grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                        <dt class="text-slate-500">m2</dt>
+                        <dd class="font-bold text-white" th:text="${wohnung.quadratmeter}">62,5</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">Zimmer</dt>
+                        <dd class="font-bold text-white" th:text="${wohnung.zimmeranzahl}">2</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">Miete</dt>
+                        <dd class="font-bold text-white" th:text="${wohnung.mietpreis}">850 €</dd>
+                    </div>
+                </dl>
+
+                <a th:href="@{/wohnungen/{id}(id=${wohnung.id})}" class="mt-6 inline-flex w-full items-center justify-center rounded-2xl border border-white/10 px-4 py-3 font-bold text-slate-100 hover:border-lime-200 hover:bg-lime-200 hover:text-slate-950">
+                    Details ansehen
+                </a>
+            </div>
+        </article>
+    </div>
+</section>
+
+<div id="kontakt" th:fragment="kontakt" class="mt-8 rounded-3xl border border-lime-200/30 bg-slate-950/70 p-5">
+    <p class="font-semibold text-white">Vermittlung Soldaten Wohnen</p>
+    <p class="mt-2 text-sm leading-6 text-slate-300">
+        Wir pruefen Verfuegbarkeit, Standortnaehe und Besichtigungstermine fuer diese Wohnung.
+    </p>
+    <div class="mt-5 space-y-3 text-sm text-slate-300">
+        <p><span class="text-slate-500">Telefon:</span> +49 228 000000</p>
+        <p><span class="text-slate-500">E-Mail:</span> vermittlung@soldaten-wohnen.local</p>
+    </div>
+    <a th:href="${wohnung.mailtoHref}" class="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-lime-300 px-5 py-3 font-bold text-slate-950 hover:bg-lime-200">
+        Anfrage per E-Mail starten
+    </a>
+</div>
+</body>
+</html>

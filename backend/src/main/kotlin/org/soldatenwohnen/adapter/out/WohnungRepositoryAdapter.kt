@@ -1,6 +1,5 @@
 package org.soldatenwohnen.adapter.out
 
-import org.soldatenwohnen.adapter.`in`.TestController
 import org.soldatenwohnen.core.katalog.application.port.out.WohnungRepository
 import org.soldatenwohnen.core.katalog.domain.model.Adresse
 import org.soldatenwohnen.core.katalog.domain.model.Mietpreis
@@ -34,6 +33,8 @@ import java.util.UUID
  *
  */
 
+// This is a completely flat data class. How would you handle this being the root aggregate which has references
+// to other entities in Spring Data JDBC?
 @Table("wohnungen")
 data class WohnungRow(
     @Id val id: UUID,
@@ -97,8 +98,7 @@ class WohnungRepositoryAdapter(
 
     // Your repository adapter is auto-wired to a Spring data jdbc repository to which it simply relays the calls
     override fun findAlleVeroeffentlichten(): List<Wohnung> =
-        jdbcRepository.findAll().map { it.toDomain() }
-//        jdbcRepository.findAlleVeroeffentlichten().map { it.toDomain() }
+        jdbcRepository.findAlleVeroeffentlichten().map { it.toDomain() }
 
     override fun findById(id: WohnungId): Wohnung? =
         jdbcRepository.findById(id.value).orElse(null)?.toDomain()

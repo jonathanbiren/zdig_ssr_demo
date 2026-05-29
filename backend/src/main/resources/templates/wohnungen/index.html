@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('Wohnungen')}"></head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+<header th:replace="~{fragments/site :: header}"></header>
+
+<main>
+    <section class="relative overflow-hidden border-b border-white/10">
+        <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(190,242,100,0.22),transparent_34rem),radial-gradient(circle_at_80%_20%,rgba(56,189,248,0.16),transparent_28rem)]"></div>
+        <div class="mx-auto grid max-w-6xl gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
+            <div class="flex flex-col justify-center">
+                <p class="mb-5 w-fit rounded-full border border-lime-200/30 bg-lime-200/10 px-4 py-2 text-sm font-medium text-lime-100">
+                    Thymeleaf + HTMX Proof of Concept
+                </p>
+                <h1 class="max-w-3xl text-4xl font-black tracking-tight text-white sm:text-6xl">
+                    Wohnungen fuer Soldaten, direkt vom Server gerendert.
+                </h1>
+                <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+                    Keine SPA-Routen, kein Hydration-Ballast. Spring rendert HTML, HTMX tauscht Fragmente aus,
+                    Tailwind liefert das Styling als statische CSS-Datei.
+                </p>
+            </div>
+            <div class="rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 shadow-2xl shadow-black/30">
+                <form
+                        class="space-y-4"
+                        hx-get="/wohnungen/suche"
+                        hx-target="#wohnungen-list"
+                        hx-swap="outerHTML"
+                        hx-trigger="submit, input changed delay:250ms from:#wohnung-suche">
+                    <label for="wohnung-suche" class="block text-sm font-semibold text-slate-200">Wohnung suchen</label>
+                    <div class="flex gap-3">
+                        <input
+                                id="wohnung-suche"
+                                name="q"
+                                type="search"
+                                th:value="${query}"
+                                placeholder="Stadt, PLZ, Titel oder Beschreibung"
+                                class="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none ring-lime-200/40 placeholder:text-slate-500 focus:border-lime-200 focus:ring-4">
+                        <button type="submit"
+                                class="rounded-2xl bg-lime-300 px-5 py-3 font-bold text-slate-950 shadow-lg shadow-lime-300/20 hover:bg-lime-200">
+                            Suchen
+                        </button>
+                    </div>
+                    <p class="text-sm text-slate-400">
+                        <span class="htmx-indicator">Aktualisiere Treffer...</span>
+                        <span class="no-js-copy">Die Trefferliste wird serverseitig gefiltert.</span>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-12">
+        <div class="mb-8 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.24em] text-lime-200">Katalog</p>
+                <h2 class="mt-2 text-3xl font-black text-white">Verfuegbare Wohnungen</h2>
+            </div>
+            <p class="max-w-xl text-sm leading-6 text-slate-400">
+                Die Karten unten kommen aus dem bestehenden Katalog-Use-Case. Die Suche ersetzt nur dieses Fragment,
+                nicht die ganze Seite.
+            </p>
+        </div>
+
+        <section id="wohnungen-list" th:replace="~{wohnungen/fragments :: wohnungListe}"></section>
+    </section>
+</main>
+</body>
+</html>

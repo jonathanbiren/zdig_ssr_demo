@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head(${wohnung.titel})}"></head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+<header th:replace="~{fragments/site :: header}"></header>
+
+<main class="mx-auto max-w-6xl px-6 py-12">
+    <a th:href="@{/wohnungen}" class="inline-flex items-center rounded-full border border-white/10 px-4 py-2 text-sm text-slate-300 hover:border-lime-200 hover:text-white">
+        Zurueck zur Suche
+    </a>
+
+    <article class="mt-8 grid gap-8 lg:grid-cols-[1fr_22rem]">
+        <section class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.06] shadow-2xl shadow-black/30">
+            <div class="h-72 bg-[radial-gradient(circle_at_35%_20%,rgba(190,242,100,0.34),transparent_18rem),linear-gradient(135deg,rgba(15,23,42,1),rgba(30,41,59,1))]"></div>
+            <div class="p-7 sm:p-10">
+                <p class="text-sm font-semibold uppercase tracking-[0.24em] text-lime-200" th:text="${wohnung.postleitzahl} + ' ' + ${wohnung.stadt}">53111 Bonn</p>
+                <h1 class="mt-4 text-4xl font-black tracking-tight text-white" th:text="${wohnung.titel}">Wohnungstitel</h1>
+                <p class="mt-6 text-lg leading-8 text-slate-300" th:text="${wohnung.beschreibung}">Beschreibung</p>
+
+                <dl class="mt-10 grid gap-4 sm:grid-cols-3">
+                    <div class="rounded-3xl border border-white/10 bg-slate-950/60 p-5">
+                        <dt class="text-sm text-slate-400">Wohnflaeche</dt>
+                        <dd class="mt-2 text-2xl font-black text-white" th:text="${wohnung.quadratmeter} + ' m2'">62,5 m2</dd>
+                    </div>
+                    <div class="rounded-3xl border border-white/10 bg-slate-950/60 p-5">
+                        <dt class="text-sm text-slate-400">Zimmer</dt>
+                        <dd class="mt-2 text-2xl font-black text-white" th:text="${wohnung.zimmeranzahl}">2</dd>
+                    </div>
+                    <div class="rounded-3xl border border-white/10 bg-slate-950/60 p-5">
+                        <dt class="text-sm text-slate-400">Miete</dt>
+                        <dd class="mt-2 text-2xl font-black text-white" th:text="${wohnung.mietpreis}">850,00 €</dd>
+                    </div>
+                </dl>
+            </div>
+        </section>
+
+        <aside class="h-fit rounded-[2rem] border border-lime-200/20 bg-lime-200/10 p-6 shadow-2xl shadow-lime-950/20">
+            <p class="text-sm font-semibold uppercase tracking-[0.24em] text-lime-100">Adresse</p>
+            <p class="mt-3 text-lg font-bold text-white" th:text="${wohnung.adresse}">Hauptstrasse 12</p>
+            <p class="text-slate-300" th:text="${wohnung.postleitzahl} + ' ' + ${wohnung.stadt}">53111 Bonn</p>
+            <p class="mt-6 text-sm text-slate-400" th:text="'Inseriert am ' + ${wohnung.erstelltAm}">Inseriert am 01.01.2026</p>
+
+            <div id="kontakt" class="mt-8 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+                <p class="font-semibold text-white">Interesse?</p>
+                <p class="mt-2 text-sm leading-6 text-slate-300">HTMX kann hier serverseitig Kontaktdaten nachladen, ohne eine komplette Detailseite neu zu laden.</p>
+                <button
+                    type="button"
+                    th:attr="hx-get=@{/wohnungen/{id}/kontakt(id=${wohnung.id})}"
+                    hx-target="#kontakt"
+                    hx-swap="outerHTML"
+                    class="mt-5 w-full rounded-2xl bg-lime-300 px-5 py-3 font-bold text-slate-950 hover:bg-lime-200">
+                    Kontakt anzeigen
+                </button>
+            </div>
+        </aside>
+    </article>
+</main>
+</body>
+</html>
