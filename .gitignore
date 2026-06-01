@@ -37,6 +37,10 @@ build/
 .env.local
 .env.*.local
 
+# Tailwind CSS / Node.js
+backend/node_modules/
+backend/package-lock.json
+
 # OS files
 .DS_Store
 Thumbs.db

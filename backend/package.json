@@ -1,0 +1,15 @@
+{
+  "name": "soldaten-wohnen",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tailwind CSS build for the Soldaten Wohnen Spring Boot backend. This package.json exists solely so IntelliJ IDEA can provide Tailwind CSS class autocompletion in Thymeleaf templates. It does not contain a JavaScript frontend.",
+  "scripts": {
+    "build": "tailwindcss -i ./src/main/resources/assets/styles.css -o ./src/main/resources/static/css/app.css",
+    "build-prod": "tailwindcss -i ./src/main/resources/assets/styles.css -o ./src/main/resources/static/css/app.css --minify",
+    "watch": "tailwindcss -i ./src/main/resources/assets/styles.css -o ./src/main/resources/static/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.0",
+    "tailwindcss": "^4.3.0"
+  }
+}

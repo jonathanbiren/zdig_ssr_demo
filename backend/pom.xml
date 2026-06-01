@@ -27,7 +27,7 @@
         <url/>
     </scm>
     <properties>
-        <java.version>24</java.version>
+        <java.version>25</java.version>
         <kotlin.version>2.4.0-RC2</kotlin.version>
     </properties>
     <dependencies>
@@ -147,6 +147,30 @@
                         <version>${kotlin.version}</version>
                     </dependency>
                 </dependencies>
+            </plugin>
+            <!--
+                Tailwind CSS build integration.
+                Runs during Maven builds to compile src/main/resources/assets/styles.css
+                into src/main/resources/static/css/app.css.
+                Requires frontend dependencies to be installed first:
+                  npm install
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>tailwindcss-build</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${project.basedir}/bin/build-css.sh</executable>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
