@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('Test')}"></head>
+
+<body>
+<div>This is some content</div>
+<a th:replace="~{fragments/site :: separator(content='Home Page', hyperlink='/')}"></a>
+<div>This is some content</div>
+</body>
+</html>

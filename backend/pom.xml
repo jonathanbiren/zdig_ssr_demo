@@ -105,10 +105,19 @@
             <artifactId>htmx-spring-boot</artifactId>
             <version>5.1.0</version>
         </dependency>
+<!--        Webjars will be served as static resources and you can include them in your templates -->
+<!--        using a specific path like <script src="/webjars/htmx.org/2.0.6/dist/htmx.min.js"></script>-->
         <dependency>
             <groupId>org.webjars.npm</groupId>
             <artifactId>htmx.org</artifactId>
-            <version>2.0.6</version>
+            <version>4.0.0-beta4</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>alpinejs</artifactId>
+            <version>3.15.12</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
