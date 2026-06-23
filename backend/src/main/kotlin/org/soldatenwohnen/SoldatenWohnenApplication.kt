@@ -1,7 +1,7 @@
 package org.soldatenwohnen
 
+import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.runApplication
 
 //This is the entry point into the application. This annotation is a combination of @Configuration, @ComponentScan
 // and @EnableAutoConfiguration.
@@ -9,5 +9,5 @@ import org.springframework.boot.runApplication
 class SoldatenWohnenApplication
 
 fun main(args: Array<String>) {
-    runApplication<SoldatenWohnenApplication>(*args)
+    SpringApplication.run(SoldatenWohnenApplication::class.java, *args)
 }
