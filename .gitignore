@@ -1,6 +1,6 @@
-# === Backend (Spring/Maven) ===
-backend/target/
-backend/.mvn/wrapper/maven-wrapper.jar
+# === Spring/Maven ===
+/target/
+.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -15,6 +15,7 @@ backend/.mvn/wrapper/maven-wrapper.jar
 
 ### IntelliJ IDEA ###
 .idea
+.idea.bak/
 *.iws
 *.iml
 *.ipr
@@ -38,8 +39,8 @@ build/
 .env.*.local
 
 # Tailwind CSS / Node.js
-backend/node_modules/
-backend/package-lock.json
+node_modules/
+package-lock.json
 
 # OS files
 .DS_Store

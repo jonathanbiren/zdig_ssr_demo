@@ -33,41 +33,40 @@ import java.util.UUID
  *
  */
 
-// This is a completely flat data class. How would you handle this being the root aggregate which has references
-// to other entities in Spring Data JDBC?
+// The Kotlin data class is just a mapping layer. It does not influence or enforce database-level constraints.
+// The table is created through Flyway database migrations.
 @Table("wohnungen")
 data class WohnungRow(
-    @Id val id: UUID,
-    val titel: String,
-    val beschreibung: String,
-    val strasse: String,
-    val hausnummer: String,
-    val postleitzahl: String,
-    val stadt: String,
-    val quadratmeter: BigDecimal,
-    val zimmeranzahl: BigDecimal,
-    val mietpreisCent: Int,
-    val status: String,
-    val erstelltAm: Instant
+	@Id val id: UUID,
+	val titel: String,
+	val beschreibung: String,
+	val strasse: String,
+	val hausnummer: String,
+	val postleitzahl: String,
+	val stadt: String,
+	val quadratmeter: BigDecimal,
+	val zimmeranzahl: BigDecimal,
+	val mietpreisCent: Int,
+	val status: String,
+	val erstelltAm: Instant
 ) {
-    // Maps the database row back to the rich domain model.
-    // We have a dependency on the domain model (Wohnung) here. You will have to evaluate what mapping strategy this is.
-    fun toDomain(): Wohnung = Wohnung(
-        id = WohnungId(id),
-        titel = titel,
-        beschreibung = beschreibung,
-        adresse = Adresse(
-            strasse = strasse,
-            hausnummer = hausnummer,
-            postleitzahl = postleitzahl,
-            stadt = stadt
-        ),
-        quadratmeter = quadratmeter,
-        zimmeranzahl = zimmeranzahl,
-        mietpreis = Mietpreis(mietpreisCent),
-        status = WohnungStatus.valueOf(status),
-        erstelltAm = erstelltAm
-    )
+	// Is this where you define constraints of the table or do you have to manually define them in the database?
+	fun toDomain(): Wohnung = Wohnung(
+		id = WohnungId(id),
+		titel = titel,
+		beschreibung = beschreibung,
+		adresse = Adresse(
+			strasse = strasse,
+			hausnummer = hausnummer,
+			postleitzahl = postleitzahl,
+			stadt = stadt
+		),
+		quadratmeter = quadratmeter,
+		zimmeranzahl = zimmeranzahl,
+		mietpreis = Mietpreis(mietpreisCent),
+		status = WohnungStatus.valueOf(status),
+		erstelltAm = erstelltAm
+	)
 }
 
 // ── Spring Data JDBC repository interface ────────────────────────────────────
@@ -79,10 +78,10 @@ data class WohnungRow(
 @Repository
 interface WohnungJdbcRepository : CrudRepository<WohnungRow, UUID> {
 
-    // You can write custom Queries through the use of the @Query annotation
-    // The index on (status, erstellt_am DESC) in V1 migration makes this fast.
-    @Query("SELECT * FROM wohnungen WHERE status = 'VEROEFFENTLICHT' ORDER BY erstellt_am DESC")
-    fun findAlleVeroeffentlichten(): List<WohnungRow>
+	// You can write custom Queries through the use of the @Query annotation
+	// The index on (status, erstellt_am DESC) in V1 migration makes this fast.
+	@Query("SELECT * FROM wohnungen WHERE status = 'VEROEFFENTLICHT' ORDER BY erstellt_am DESC ")
+	fun findAlleVeroeffentlichten(): List<WohnungRow>
 
 
 }
@@ -91,16 +90,20 @@ interface WohnungJdbcRepository : CrudRepository<WohnungRow, UUID> {
 // Bridges between the application's WohnungRepository interface. WohnungRepositoryAdapter implements the outbound port
 // and uses the WohnungJdbcRepository to access the database. Maybe this is too much of an abstraction?
 
+
+// This is the repository which implements the outbound port of the application core. It has the JDBC repository
+// injected into it to which it relays its calls. Is this necessary or can you directly use the WohnungJdbcRepository?
 @Component
 class WohnungRepositoryAdapter(
-    private val jdbcRepository: WohnungJdbcRepository
+	private val jdbcRepository: WohnungJdbcRepository
 ) : WohnungRepository {
 
-    // Your repository adapter is auto-wired to a Spring data jdbc repository to which it simply relays the calls
-    override fun findAlleVeroeffentlichten(): List<Wohnung> =
-        jdbcRepository.findAlleVeroeffentlichten().map { it.toDomain() }
+	// Your repository adapter is auto-wired to a Spring data jdbc repository to which it simply relays the calls
+	override fun findAlleVeroeffentlichten(): List<Wohnung> =
+		jdbcRepository.findAlleVeroeffentlichten().map { it.toDomain() }
 
-    override fun findById(id: WohnungId): Wohnung? =
-        jdbcRepository.findById(id.value).orElse(null)?.toDomain()
+	override fun findById(id: WohnungId): Wohnung? {
+		return jdbcRepository.findById(id.value).orElse(null)?.toDomain()
+	}
 
 }

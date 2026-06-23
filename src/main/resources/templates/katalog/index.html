@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/htmx_ajs :: head('Landing Page')}"></head>
+<body>
+<!--I want to test the out of band swapping of htmx-->
+<button hx-get="/update-oob"
+        hx-swap="none"
+        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+>
+    Update OOB
+</button>
+<section th:replace="~{katalog/fragments/heroSection :: heroSection(${heroSectionTitle})}"></section>
+<section th:replace="~{katalog/fragments/featureSection :: featureSection(${featureSectionTitle})}"></section>
+
+</body>
+</html>

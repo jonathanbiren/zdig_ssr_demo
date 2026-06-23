@@ -14,7 +14,7 @@ You do **not** need to install Maven globally. The `./mvnw` script handles every
 ## Application Entry Point
 
 ```
-backend/src/main/kotlin/org/soldatenwohnen/SoldatenWohnenApplication.kt
+src/main/kotlin/org/soldatenwohnen/SoldatenWohnenApplication.kt
 ```
 
 This is a standard Spring Boot + Kotlin bootstrap:
@@ -34,7 +34,7 @@ Spring Boot's component scan starts from the `org.soldatenwohnen` package and pi
 
 ## How to Build and Run
 
-All commands must be run from the `backend/` directory.
+All commands must be run from the project root directory.
 
 ### Run in development mode (recommended)
 
