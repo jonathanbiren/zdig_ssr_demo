@@ -1,6 +1,6 @@
-# === Backend (Spring/Maven) ===
-backend/target/
-backend/.mvn/wrapper/maven-wrapper.jar
+# === Spring/Maven ===
+/target/
+.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -15,6 +15,7 @@ backend/.mvn/wrapper/maven-wrapper.jar
 
 ### IntelliJ IDEA ###
 .idea
+.idea.bak/
 *.iws
 *.iml
 *.ipr
@@ -32,20 +33,14 @@ build/
 ### VS Code ###
 .vscode/
 
-# === Frontend (Node/pnpm) ===
-frontend/node_modules/
-frontend/dist/
-
-# Generated route tree (TanStack Router)
-frontend/src/routeTree.gen.ts
-
-# TanStack Router temp files
-frontend/.tanstack/
-
 # Environment files
 .env
 .env.local
 .env.*.local
+
+# Tailwind CSS / Node.js
+node_modules/
+package-lock.json
 
 # OS files
 .DS_Store

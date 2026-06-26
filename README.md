@@ -1,160 +1,754 @@
-# Every time you want to work on this project, you need to run: 
+# Soldaten Wohnen Backend
 
-#### 1. Start the database (if not already running)
-```terminal
-docker compose up -d (starts the docker container with you postgres instance running inside)
-docker compose down (To tear the container back down) 
-```
+The backend application for Soldaten Wohnen. It serves both the backend API and the server-rendered HTML user interface.
 
-#### 2. Start the backend (in a terminal, from the backend/ directory)
-info.app.name=soldaten-wohnen
-```terminal
-./mvnw spring-boot:run (if you only have maven installed locally) 
-```
-#### Spring Boot starts → Flyway runs any new migrations → app ready on :8080
+There is no separate JavaScript frontend project. Pages are rendered with **Thymeleaf**, small interactive updates use **HTMX**, styling is generated with **Tailwind CSS v4**, and data is stored in **PostgreSQL**.
 
-#### 3. Start the frontend (in another terminal, from the frontend/ directory)
-```terminal
-pnpm dev
-```
+**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or a frontend framework like React or Vue. The only JavaScript-related file is `package.json`, and it exists solely because **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in Thymeleaf templates.** No Node.js code runs in the browser.
 
-#### Vite starts → frontend ready on :3000, proxies /api calls to :8080
+## Contents
 
+1. [Mental Model: How Everything Fits Together](#mental-model-how-everything-fits-together)
+2. [Current Stack](#current-stack)
+3. [One-Time Setup](#one-time-setup)
+4. [Daily Development Workflow](#daily-development-workflow)
+5. [How The CSS Build Works](#how-the-css-build-works)
+6. [Application Routes](#application-routes)
+7. [Database And Flyway](#database-and-flyway)
+8. [Architecture](#architecture)
+9. [Project Structure](#project-structure)
+10. [Why npm Is Used For Tailwind CSS](#why-npm-is-used-for-tailwind-css)
+11. [Updating Dependencies](#updating-dependencies)
+12. [Common Tasks](#common-tasks)
+13. [Troubleshooting](#troubleshooting)
 
-# How this monorepo works
+---
 
-Your repository is now two completely independent projects that happen to live under one Git repo. That's it. There is no monorepo tool (no Nx, no Turborepo, no Lerna) coordinating them. The frontend/ and backend/ directories are as unaware of each other as two strangers on a bus. They share a .gitignore and a Git history, and nothing else.
-Why they can coexist
-The frontend and backend use entirely different ecosystems with zero overlap:
+## Mental Model: How Everything Fits Together
 
-| | Frontend | Backend |
+### The Big Picture
+
+This is a **server-rendered web application**. The browser never runs a JavaScript framework. Instead:
+
+1. The user clicks a link or submits a form.
+2. The browser sends a normal HTTP request to the Spring Boot server.
+3. Spring Boot runs Kotlin code, queries PostgreSQL, and decides what HTML to return.
+4. **Thymeleaf** renders the HTML template on the server.
+5. The browser receives raw HTML and displays it.
+6. For small interactive updates (like filtering a list), **HTMX** intercepts the click, sends a background request, and swaps a fragment of the page without a full reload.
+7. **Tailwind CSS** provides the styling. It is a static CSS file served by Spring Boot like any other asset.
+
+### Why npm Is Present In This Project
+
+Tailwind CSS v4 can be installed and run in two ways:
+
+1. **Standalone CLI** — a single binary, no npm required. Fast and self-contained.
+2. **npm package** — installed via `npm install`. Slightly more overhead, but universally supported by IDE tooling.
+
+**This project uses the npm package.** The reason is simple: IntelliJ IDEA's Tailwind CSS Language Server detects the `tailwindcss` package in `node_modules` and uses it to provide class autocompletion, hover documentation, and CSS preview inside Thymeleaf HTML templates. Without the npm package, the language server does not activate, and you get no autocomplete.
+
+This is the **only** reason `package.json` and `node_modules` exist. They are not used for a JavaScript build pipeline, a frontend framework, or client-side bundling.
+
+### How Hot Reload Works
+
+There are **two independent hot-reload mechanisms** running in parallel during development:
+
+| Mechanism | Watches | What happens |
 |---|---|---|
-| Language | TypeScript | Kotlin |
-| Build tool | Vite (invoked via pnpm) | Maven (invoked via ./mvnw) |
-| Dependency manifest | package.json | pom.xml |
-| Dependency storage | node_modules/ (local to frontend/) | ~/.m2/repository/ (global Maven cache) |
-| Dev server | localhost:3000 | localhost:8080 |
+| **Tailwind CSS `--watch`** | `assets/styles.css`, HTML templates, Kotlin source files | Recompiles `static/css/app.css` whenever you add or remove Tailwind classes |
+| **Spring Boot DevTools** | `static/` directory, classpath (Kotlin/Java files) | Restarts the server on code changes; triggers LiveReload in the browser when static assets change |
 
+**The flow when you edit a template:**
 
-There is no conflict because these tools have no awareness of each other. Maven doesn't scan for package.json, and pnpm doesn't look for pom.xml. Each tool only cares about the directory it's run from.
-Where dependencies come from
-Frontend: When you run `pnpm install inside frontend/`, pnpm reads frontend/package.json, resolves versions using the npm registry, and downloads packages into `frontend/node_modules/`. The `pnpm-lock.yaml` file pins exact versions. Everything is self-contained within that directory.
-Backend: When you run `./mvnw compile inside backend/`, Maven reads `backend/pom.xml`, resolves versions from Maven Central (and the Spring Boot parent POM), and caches downloaded JARs in `~/.m2/repository/` on your machine. This is a global cache shared by all Maven projects on your system -- unlike `node_modules`, it doesn't live inside your project.
+1. You add a new Tailwind class to an HTML template.
+2. Tailwind's watcher detects the change and rebuilds `app.css` (takes ~40ms).
+3. Spring Boot DevTools detects that `app.css` was modified.
+4. DevTools either triggers a browser LiveReload, or the next page request simply serves the new file.
+5. You see the change immediately without manually refreshing.
 
-How to develop each one:
+**The flow when you edit Kotlin code:**
 
+1. You edit a controller or service.
+2. Spring Boot DevTools detects the classpath change.
+3. It restarts the embedded server (fast, because only your code changed, not dependencies).
+4. The new logic is active on the next request.
 
-### Frontend -- always cd frontend first:
+---
+
+## Current Stack
+
+| Concern | Technology | Where it lives |
+|---|---|---|
+| JVM language | Kotlin | `src/main/kotlin` |
+| Web framework | Spring Boot Web MVC | Controllers in `adapter/in` |
+| HTML rendering | Thymeleaf | `src/main/resources/templates` |
+| HTML fragment updates | HTMX | Served from a WebJar under `/webjars/**` |
+| Styling | Tailwind CSS v4 (via npm) | Source in `assets/styles.css`, output in `static/css/app.css` |
+| CSS build tool | `@tailwindcss/cli` (via npm) | Scripts in `package.json` |
+| Database access | Spring Data JDBC | `adapter/out/WohnungRepositoryAdapter.kt` |
+| Database | PostgreSQL | Docker Compose at `docker-compose.yml` |
+| Schema migrations | Flyway | `src/main/resources/db/migration` |
+| Build tool | Maven Wrapper | `./mvnw` |
+| Dev hot reload | Spring Boot DevTools + Tailwind `--watch` | See `bin/dev.sh` |
+
+---
+
+## One-Time Setup
+
+These steps are needed once per development machine.
+
+### 1. Start PostgreSQL
+
+```bash
+docker compose up -d
 ```
-pnpm install    # install deps (first time, or after changing package.json)
-pnpm dev        # start Vite dev server on localhost:3000
-pnpm build      # production build to frontend/dist/
+
+### 2. Install Frontend Dependencies
+
+```bash
+npm install
 ```
 
-### Backend -- always cd backend first:
-```
-./mvnw spring-boot:run    # start Spring Boot on localhost:8080
-./mvnw compile            # just compile
-./mvnw test               # run tests
-```
-You run them in two separate terminals when developing. They're independent processes.
+This installs `tailwindcss` and `@tailwindcss/cli` into `node_modules/`. It is ignored by git. The `tailwindcss` package is what IntelliJ detects for autocompletion. The `@tailwindcss/cli` package provides the `tailwindcss` command used by the build scripts.
 
-### How the frontend talks to the backend
+You need **Node.js and npm** installed on your machine for this step. You do not need to know anything about npm beyond running `npm install` and the occasional `npm update`.
 
-I configured a proxy in frontend/vite.config.ts:
-```json
-{
-  server: {
-    port: 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
-      }
-    }
-  }
+### 3. Build The CSS For The First Time
+
+```bash
+./bin/build-css.sh
+```
+
+This compiles `assets/styles.css` into `static/css/app.css`. You only need to run this manually once; during development the watcher handles it, and during production builds Maven handles it automatically.
+
+---
+
+## Daily Development Workflow
+
+### 1. Start The Database
+
+```bash
+docker compose up -d
+```
+
+Data persists in a Docker volume, so stopping and restarting the container does not wipe the database.
+
+### 2. Start The Development Server
+
+```bash
+./bin/dev.sh
+```
+
+This script does two things simultaneously:
+
+1. Starts **Tailwind CSS in `--watch` mode** in the background. It watches `assets/styles.css` and all HTML/Kotlin templates, and rebuilds `static/css/app.css` on every change.
+2. Starts **Spring Boot** in the foreground. DevTools is active. LiveReload runs on port `35729`.
+
+Press `Ctrl+C` to stop both processes cleanly.
+
+### 3. Open The Application
+
+```text
+http://localhost:8080/wohnungen
+```
+
+The home route `/` redirects to the catalogue page.
+
+### 4. Make Changes And See Them Instantly
+
+- **Edit HTML templates**: Save the file. Tailwind rebuilds CSS if you added new classes. The browser may auto-reload via LiveReload.
+- **Edit Kotlin code**: Save the file. Spring Boot DevTools restarts the server in ~1-2 seconds.
+- **Edit `assets/styles.css`**: Save the file. Tailwind rebuilds immediately.
+
+You do **not** need to stop and restart `./bin/dev.sh` for normal template or code changes.
+
+### 5. Run Tests
+
+```bash
+./mvnw test
+```
+
+Tests start the full Spring application context, so PostgreSQL must be running.
+
+For a fast compile-only check:
+
+```bash
+./mvnw -DskipTests compile
+```
+
+### 6. Build For Production
+
+```bash
+./mvnw clean package
+```
+
+Maven automatically runs `./bin/build-css.sh` during the `generate-resources` phase, so the packaged JAR always contains the latest compiled CSS. No manual CSS build step is required.
+
+---
+
+## How The CSS Build Works
+
+### Source File
+
+`src/main/resources/assets/styles.css` is the **source** file. It is a valid CSS file that uses Tailwind v4 directives:
+
+```css
+@import "tailwindcss";
+
+@source "../templates/**/*.html";
+@source "../../kotlin/**/*.kt";
+
+@theme {
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
 }
-```
-During development, when the frontend makes a request to /api/anything, Vite intercepts it and forwards it to localhost:8080 (where Spring Boot is running). The browser only talks to localhost:3000 -- it never sees the backend directly. This avoids CORS issues entirely during development.
-In production, you'd deploy these separately and configure your reverse proxy (nginx, etc.) to route /api to the backend and everything else to the frontend's static files.
-What gets auto-generated (don't edit these)
-- frontend/src/routeTree.gen.ts -- TanStack Router generates this from your files in src/routes/. It's gitignored and regenerated on every build/dev start.
-- frontend/.tanstack/ -- temp files from the router plugin. Also gitignored.
-  The file-based routing pattern
-  TanStack Router watches frontend/src/routes/. Any .tsx file you add there automatically becomes a route:
-- routes/index.tsx -> /
-- routes/about.tsx -> /about
-- routes/listings/$id.tsx -> /listings/:id (dynamic param)
-- routes/__root.tsx -> the layout that wraps all pages. You don't need to manually register routes. The plugin generates the route tree for you.
 
-### Tailwind CSS 4
-  Tailwind v4 works as a Vite plugin (@tailwindcss/vite) -- no config file needed. It scans your source files for class names automatically. Your CSS entry point is frontend/src/index.css with just @import 'tailwindcss';. That single line gives you the full utility class library. Customization is done with CSS @theme directives directly in CSS rather than a tailwind.config.js file (which was the v3 approach).
-
-
-Your confusion is completely reasonable, and it stems from the tsconfig.node.json / tsconfig.app.json split making it sound like there are two runtime environments for your frontend code. Let me clear this up.
-
-# Your SPA: everything runs in the browser
-
-Your intuition that "ALL code in the frontend directory will be bundled into a single JavaScript bundle and run only in the browser" is correct. That is exactly what happens. Every .tsx file in src/ gets compiled and bundled into static files (HTML, CSS, JS) that are served to and executed by the browser. There is no server-side rendering. There is no Node process running your SolidJS code.
-
-The tsconfig.node.json confused you because of its name. Here's what it actually covers:
-
-tsconfig.node.json does NOT mean "frontend code that runs on a server." It covers exactly one file: vite.config.ts. That file is a build tool configuration script. It runs during development (when you type pnpm dev) and during build (when you type pnpm build), on your machine, in Node. It is not part of your application. It never gets bundled. It never reaches the browser. It's the equivalent of pom.xml for the backend -- it configures the build, it doesn't ship.
-So the split is:
-
-| tsconfig           | What it covers                      | Where that code runs                                  |
-| ------------------ | ----------------------------------- | ----------------------------------------------------- |
-| tsconfig.app.json  | src/**/*.tsx -- your actual app     | In the browser, after Vite bundles it                 |
-| tsconfig.node.json | vite.config.ts -- build tool config | On your machine in Node, during pnpm dev / pnpm build |
-You can tell from the file structure: everything in src/ is browser code. Everything outside src/ (config files) is tooling that runs on your machine.
-The full picture: what processes exist
-Development (pnpm dev + ./mvnw spring-boot:run)
-
-There are exactly three processes:
-
-1. Vite dev server (Node process, port 3000) -- This is NOT your SolidJS app. This is a development tool. It watches your src/ files, transforms them on-the-fly (TypeScript -> JS, JSX -> JS, Tailwind -> CSS), and serves them to the browser. It also provides hot module replacement (HMR) so when you save a file, the browser updates without a full reload.
-2. Your browser -- Loads index.html from the Vite dev server, which pulls in your JS bundle, which boots SolidJS, which renders your UI. All your application code (src/) executes here. The SolidJS app does NOT run in its own separate process -- it runs inside the browser's JavaScript engine, in the same process as the browser tab.
-3. Spring Boot (JVM process, port 8080) -- Your backend. Serves API responses.
-
-### The flow of a page load in dev:
-
-Browser requests http://localhost:3000
--> Vite dev server responds with index.html
--> Browser parses index.html, sees `<script src="/src/index.tsx">`
--> Browser requests /src/index.tsx from Vite
--> Vite transforms it (TSX -> JS) on the fly, sends it back
--> Browser executes it -> SolidJS boots -> your app renders
-
-### The flow of an API call in dev:
-
-Your SolidJS code calls fetch('/api/listings')
--> Browser sends request to localhost:3000/api/listings
--> Vite dev server sees it starts with /api
--> Vite proxies (forwards) the request to localhost:8080/api/listings
--> Spring Boot handles it, returns JSON
--> Vite forwards the response back to the browser
--> Your SolidJS code receives the JSON
-
-## What the Vite proxy actually does
-
-The proxy exists to solve one specific problem: the browser's same-origin policy. During development, your frontend is on localhost:3000 and your backend is on localhost:8080. These are different origins. If your browser JavaScript tried to fetch('http://localhost:8080/api/listings') directly, the browser would block it as a cross-origin request (unless the backend sent CORS headers).
-The proxy makes it so your frontend code just calls fetch('/api/listings') -- a relative URL. The browser sends this to localhost:3000 (where it loaded the page from). Vite intercepts it and forwards it to localhost:8080 server-side. The key insight: the same-origin policy is a browser restriction. Vite's proxy runs in Node, not in the browser, so it can talk to any server freely. From the browser's perspective, the API response came from localhost:3000 -- same origin, no CORS issue.
-Production (pnpm build output)
-In production, Vite is gone entirely. pnpm build produces static files in frontend/dist/:
-
-```
-dist/
-  index.html
-  assets/
-    index-XXXX.js    (your entire SolidJS app, minified)
-    index-XXXX.css   (your Tailwind styles)
+@layer base { ... }
+@layer components { ... }
 ```
 
-These are just files. You serve them with any static file server (nginx, a CDN, S3, or even Spring Boot's own static resource serving). There is no Node process. No Vite. The browser downloads these files and runs the JS. The only "server" is whatever serves those static files and your Spring Boot backend.
-In production, the proxy doesn't exist anymore (Vite isn't running), so you'd configure your deployment's reverse proxy (typically nginx) to route `/api/*` to Spring Boot and everything else to the static files.
-Summary
-- src/ = browser code. All of it. No exceptions in your setup.
-- Config files outside src/ (vite.config.ts, tsconfig.*.json, package.json) = tooling that runs on your machine during development/build. Never reaches the browser.
-- The SolidJS app is not a separate process. It runs inside the browser tab.
-- Vite dev server is a development convenience: it transforms files, serves them, and proxies API calls. In production it doesn't exist.
-- The two tsconfigs are about TypeScript checking code with the right assumptions (browser APIs vs. Node APIs), not about shipping code to two different runtimes.
+- `@import "tailwindcss"` brings in the entire Tailwind framework.
+- `@source` tells Tailwind which files to scan for class names. This is how Tailwind knows which utility classes to include in the output.
+- `@theme` defines custom design tokens (colors, fonts, spacing) using CSS custom properties.
+- `@layer base` and `@layer components` are for your own custom CSS.
+
+**No `tailwind.config.js` or `postcss.config.js` is needed.** Tailwind v4 is fully configured inside the CSS file itself.
+
+### Compiled File
+
+`src/main/resources/static/css/app.css` is the **compiled** file. It is a self-contained, minified CSS file that includes only the utility classes actually used in your templates. It is served by Spring Boot as a static asset.
+
+### npm Scripts
+
+The `package.json` defines three scripts:
+
+| Script | Command | When to use |
+|---|---|---|
+| `build` | `tailwindcss -i ... -o ...` | Development build without minification |
+| `build-prod` | `tailwindcss -i ... -o ... --minify` | Production build. Used by Maven and `build-css.sh`. |
+| `watch` | `tailwindcss -i ... -o ... --watch` | Development. Used by `dev.sh`. Rebuilds on every file change. |
+
+You can run these directly if you prefer:
+
+```bash
+npm run build-prod
+npm run watch
+```
+
+### Build Scripts
+
+| Script | When to use |
+|---|---|
+| `./bin/build-css.sh` | One-off build. Used by Maven during `./mvnw package`. |
+| `./bin/dev.sh` | Development. Runs Tailwind watcher + Spring Boot together. |
+
+### What Happens If You Delete `app.css`
+
+Nothing bad. Run `./bin/build-css.sh` and it will be recreated. If you build the project with Maven, it will also be recreated automatically.
+
+### What Happens If You Delete `node_modules`
+
+Run `npm install` again. Both `build-css.sh` and `dev.sh` will automatically run `npm install` for you if `node_modules` is missing, but doing it manually during one-time setup avoids the delay during your first build.
+
+---
+
+## Application Routes
+
+### Public HTML Routes
+
+Rendered with Thymeleaf and accessible without authentication:
+
+| Route | Purpose |
+|---|---|
+| `GET /` | Redirects to catalogue page |
+| `GET /wohnungen` | Catalogue page |
+| `GET /wohnungen/suche?q=...` | HTMX fragment for the filtered apartment list |
+| `GET /wohnungen/{id}` | Apartment detail page |
+| `GET /wohnungen/{id}/kontakt` | HTMX fragment for contact details |
+| `GET /css/app.css` | Generated Tailwind stylesheet |
+| `GET /webjars/**` | WebJar assets, including HTMX |
+
+### API Routes
+
+JSON API routes, protected by Spring Security:
+
+| Route | Purpose |
+|---|---|
+| `GET /api/katalog/wohnungen` | Published apartment list as JSON |
+| `GET /api/katalog/wohnungen/{id}` | Apartment detail as JSON |
+
+Development credentials (from `application.properties`):
+
+```text
+Username: biren
+Password: biren
+```
+
+Example API call:
+
+```bash
+curl -u biren:biren http://localhost:8080/api/katalog/wohnungen
+```
+
+### Actuator Endpoints
+
+Spring Boot Actuator is enabled. All endpoints are exposed:
+
+```text
+http://localhost:8080/actuator
+```
+
+Useful during development for monitoring and debugging.
+
+---
+
+## Database And Flyway
+
+### Local Database
+
+PostgreSQL runs in Docker. Defined in `docker-compose.yml`.
+
+| Setting | Value |
+|---|---|
+| Host | `localhost` |
+| Port | `5432` |
+| Database | `soldaten_wohnen` |
+| Username | `soldaten_wohnen` |
+| Password | `soldaten_wohnen` |
+
+Spring Boot reads these values from `src/main/resources/application.properties`.
+
+### What Flyway Does
+
+Flyway owns the database schema. The `@Table("wohnungen")` annotation in `WohnungRepositoryAdapter.kt` does not create a table. It only tells Spring Data JDBC which table a Kotlin class maps to.
+
+The actual table is created by SQL migrations in:
+
+```text
+src/main/resources/db/migration
+```
+
+Current migrations:
+
+| File | Purpose |
+|---|---|
+| `V1__create_wohnungen.sql` | Creates the `wohnungen` table and index |
+| `V2__seed_wohnungen.sql` | Inserts development apartment data |
+
+Spring Boot runs Flyway before accepting requests. If a migration has not been applied, Flyway applies it automatically.
+
+### Migration Naming
+
+Every migration file must use this format:
+
+```text
+V{number}__{description}.sql
+```
+
+Examples:
+
+```text
+V3__add_balkon_to_wohnungen.sql
+V4__create_bewerbungen.sql
+V5__add_index_on_bewerbungen_status.sql
+```
+
+Use two underscores between the version and the description.
+
+### Do Not Edit Applied Migrations
+
+Once a migration has run on any database, do not edit that file. Flyway stores a checksum for applied migrations. If the file changes later, Flyway will refuse to start.
+
+If you need to change the schema after a migration was applied, create a new migration.
+
+If you are only experimenting locally and want to start over, reset the database:
+
+```bash
+docker compose down -v
+docker compose up -d
+./bin/dev.sh
+```
+
+The `-v` flag removes the Docker volume and deletes all local database data.
+
+---
+
+## Architecture
+
+The backend uses a simple hexagonal architecture for the apartment catalogue bounded context.
+
+The goal is separation of concerns:
+
+| Layer | Responsibility |
+|---|---|
+| `domain/model` | Core business concepts, with no Spring or database dependency |
+| `application/port/in` | Use case interfaces called by controllers |
+| `application/service` | Application orchestration, transactions, and use case implementations |
+| `application/port/out` | Interfaces for infrastructure needed by the application |
+| `adapter/in` | Inbound adapters such as MVC page controllers and JSON API controllers |
+| `adapter/out` | Outbound adapters such as Spring Data JDBC persistence |
+
+Request flow for the catalogue page:
+
+```text
+Browser
+-> KatalogPageController
+-> WohnungenAuflistenUseCase
+-> WohnungssucheService
+-> WohnungRepository
+-> WohnungRepositoryAdapter
+-> WohnungJdbcRepository
+-> PostgreSQL
+```
+
+Dependency direction points inward. The domain model does not know about Spring MVC, Thymeleaf, JDBC, Flyway, or PostgreSQL.
+
+---
+
+## Project Structure
+
+```text
+soldaten-wohnen/
+|-- pom.xml                              # Maven dependencies and build configuration
+|-- mvnw                                 # Maven wrapper script
+|-- package.json                         # Tailwind CSS npm dependencies and build scripts
+|-- bin/
+|   |-- build-css.sh                    # One-off CSS build (used by Maven and manual runs)
+|   |-- dev.sh                          # Development: runs Tailwind watcher + Spring Boot
+|-- node_modules/                        # Installed npm packages (ignored by git)
+|-- src/
+|   |-- main/
+|   |   |-- kotlin/
+|   |   |   |-- org/soldatenwohnen/
+|   |   |       |-- SoldatenWohnenApplication.kt
+|   |   |       |-- SecurityConfig.kt
+|   |   |       |-- adapter/
+|   |   |       |   |-- in/
+|   |   |       |   |   |-- KatalogPageController.kt
+|   |   |       |   |   |-- WohnungenAuflistenController.kt
+|   |   |       |   |   |-- WohnungDetailAnzeigenController.kt
+|   |   |       |   |-- out/
+|   |   |       |       |-- WohnungRepositoryAdapter.kt
+|   |   |       |-- core/
+|   |   |           |-- katalog/
+|   |   |               |-- domain/model/Wohnung.kt
+|   |   |               |-- application/port/in/WohnungenAuflistenUseCase.kt
+|   |   |               |-- application/port/in/WohnungDetailAnzeigenUseCase.kt
+|   |   |               |-- application/port/out/WohnungRepository.kt
+|   |   |               |-- application/service/WohnungssucheService.kt
+|   |   |-- resources/
+|   |       |-- application.properties   # App config, datasource, security, Thymeleaf, DevTools
+|   |       |-- assets/
+|   |       |   |-- styles.css          # Tailwind v4 source file
+|   |       |-- static/
+|   |       |   |-- css/
+|   |       |       |-- app.css         # Generated CSS served by Spring Boot
+|   |       |-- templates/
+|   |       |   |-- fragments/site.html
+|   |       |   |-- wohnungen/index.html
+|   |       |   |-- wohnungen/detail.html
+|   |       |   |-- wohnungen/fragments.html
+|   |       |-- db/migration/
+|   |           |-- V1__create_wohnungen.sql
+|   |           |-- V2__seed_wohnungen.sql
+|   |-- test/
+|       |-- kotlin/org/soldatenwohnen/SoldatenWohnenApplicationTests.kt
+```
+
+### Important Files
+
+| File | Why it matters |
+|---|---|
+| `pom.xml` | Maven dependencies, Kotlin compiler, exec plugin for CSS build |
+| `package.json` | Tailwind CSS version and npm build scripts (`build`, `build-prod`, `watch`) |
+| `application.properties` | App name, datasource, Flyway, security, Thymeleaf, DevTools |
+| `SecurityConfig.kt` | Public page routes and protected API routes |
+| `KatalogPageController.kt` | Thymeleaf page routes and HTMX fragment routes |
+| `WohnungenAuflistenController.kt` | JSON API list endpoint |
+| `WohnungDetailAnzeigenController.kt` | JSON API detail endpoint |
+| `WohnungRepositoryAdapter.kt` | Spring Data JDBC row mapping and repository adapter |
+| `Wohnung.kt` | Domain model for apartments |
+| `templates/wohnungen/*.html` | Catalogue page, detail page, and reusable fragments |
+| `assets/styles.css` | Tailwind v4 source file |
+| `static/css/app.css` | Generated CSS served by Spring Boot |
+| `db/migration/*.sql` | Flyway schema migrations |
+
+---
+
+## Why npm Is Used For Tailwind CSS
+
+This section explains the design decision and the trade-offs.
+
+### The Two Ways To Install Tailwind CSS v4
+
+Tailwind CSS v4 can be obtained in two forms:
+
+1. **Standalone CLI** — a single ~80MB executable downloaded from GitHub releases. No npm, no `node_modules`, no `package.json`.
+2. **npm package** — installed via `npm install tailwindcss` and `npm install @tailwindcss/cli`.
+
+### What We Tried First
+
+We initially used the **standalone CLI**. The build worked perfectly. CSS compiled in 40ms. No npm was involved. Maven builds were clean. The `dev.sh` script ran the watcher without any JavaScript tooling.
+
+### Why We Switched To npm
+
+**IntelliJ IDEA does not support the standalone CLI for autocompletion.** Its bundled Tailwind CSS Language Server is designed around the npm ecosystem. It looks for `node_modules/tailwindcss` to detect a Tailwind project. Without that package, the language server never activates, and you get **no class autocompletion** inside Thymeleaf HTML templates.
+
+JetBrains documentation recommends installing `@tailwindcss/language-server` globally and pointing IntelliJ to it, but in practice this does not work reliably for Tailwind v4 projects without a local `node_modules/tailwindcss` installation.
+
+The `package.json` and `node_modules` exist **only** to satisfy the IDE. They are not part of the application's runtime.
+
+### Advantages Of The npm Route
+
+| Advantage | Explanation |
+|---|---|
+| **IDE autocompletion works** | IntelliJ provides Tailwind class completion, hover documentation, and CSS preview in HTML templates. |
+| **Standard ecosystem** | The `build`, `build-prod`, `watch` scripts in `package.json` match the setup described in *Taming Thymeleaf* and other learning resources. |
+| **Easy plugin additions** | If you ever need a Tailwind plugin (e.g., `@tailwindcss/forms`), you can add it to `package.json` like any other npm dependency. |
+| **Explicit version management** | `package.json` records the exact Tailwind version. Upgrading is a single `npm update` command. |
+
+### Disadvantages Of The npm Route
+
+| Disadvantage | Explanation |
+|---|---|
+| **Requires Node.js and npm** | You must have Node.js installed on your development machine. The standalone CLI had no runtime dependencies. |
+| **`node_modules` disk usage** | `node_modules` takes ~50-100MB of disk space and is ignored by git. |
+| **Slightly more complex mental model** | You must understand that npm is used for the CSS compiler, not for a JavaScript frontend. |
+| **Slower initial setup** | `npm install` downloads many small files. The standalone CLI was one 80MB download. |
+| **One more tool to update** | You now need to keep both Maven dependencies and npm dependencies up to date. |
+
+### The Bottom Line
+
+The npm route is a **pragmatic compromise**. It introduces a small amount of JavaScript tooling into an otherwise JavaScript-free project, but the payoff is a significantly better development experience inside IntelliJ IDEA. The browser still receives plain HTML and CSS. No JavaScript framework is involved.
+
+---
+
+## Updating Dependencies
+
+### Update Tailwind CSS
+
+Tailwind releases new versions regularly. To check for updates:
+
+```bash
+npm outdated
+```
+
+To update to the latest version:
+
+```bash
+npm update tailwindcss @tailwindcss/cli
+```
+
+Then rebuild the CSS and verify the application still looks correct:
+
+```bash
+./bin/build-css.sh
+```
+
+If everything is fine, commit the updated `app.css` and the updated `package.json`. `node_modules` is never committed.
+
+To see exactly what changed, check the Tailwind releases page:
+
+```text
+https://github.com/tailwindlabs/tailwindcss/releases
+```
+
+### Update Spring Boot And Kotlin
+
+Spring Boot and Kotlin versions are declared in `pom.xml`:
+
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.5</version>
+</parent>
+```
+
+```xml
+<properties>
+    <java.version>24</java.version>
+    <kotlin.version>2.4.0-RC2</kotlin.version>
+</properties>
+```
+
+To check for new Spring Boot versions:
+
+1. Visit the Spring Boot releases page: `https://github.com/spring-projects/spring-boot/releases`
+2. Look for the latest stable version in the same major version line (e.g., `4.0.x` or `4.1.x`).
+3. Update the `<version>` tag in `pom.xml`.
+4. Run `./mvnw clean compile` and fix any deprecation warnings.
+5. Run `./mvnw test` to verify everything still works.
+
+To check for new Kotlin versions:
+
+1. Visit `https://github.com/JetBrains/kotlin/releases`
+2. Update the `<kotlin.version>` property in `pom.xml`.
+3. Rebuild and test as above.
+
+### Update Other Dependencies
+
+Some dependencies have explicit versions in `pom.xml`:
+
+| Dependency | Current Version | Where to check for updates |
+|---|---|---|
+| `springdoc-openapi-starter-webmvc-ui` | `3.0.3` | `https://springdoc.org/` or Maven Central |
+| `htmx-spring-boot` | `5.1.0` | `https://github.com/wimdeblauwe/htmx-spring-boot/releases` |
+| `htmx.org` (WebJar) | `2.0.6` | `https://github.com/bigskysoftware/htmx/releases` |
+
+For dependencies managed by the Spring Boot parent (most of them), updating the parent version is usually enough. For dependencies with explicit versions, check their release notes and update the `<version>` tag in `pom.xml`.
+
+After any dependency change, run:
+
+```bash
+./mvnw clean compile
+./mvnw test
+```
+
+---
+
+## Common Tasks
+
+### Add A New HTML Page
+
+1. Add a Thymeleaf template under `src/main/resources/templates`.
+2. Add a method to a controller in `adapter/in`.
+3. Return the template name from the controller method.
+4. If you used new Tailwind classes, save the template. The Tailwind watcher (if running) or `./bin/build-css.sh` will update `app.css`.
+5. Run `./mvnw test`.
+
+### Add An HTMX Interaction
+
+1. Add `hx-get`, `hx-post`, or another HTMX attribute to a template.
+2. Add a controller method that returns a Thymeleaf fragment, not a whole page.
+3. Put the fragment in a template such as `wohnungen/fragments.html`.
+4. Keep the response HTML small and focused on the element being swapped.
+5. Run `./mvnw test`.
+
+### Add A New Column To `wohnungen`
+
+1. Create a new migration in `src/main/resources/db/migration`, for example `V3__add_balkon_to_wohnungen.sql`.
+2. Add the column with SQL in that migration.
+3. Add the corresponding property to `WohnungRow`.
+4. Update `toDomain()` if the domain model needs the new data.
+5. Update templates or API response DTOs if the new data should be displayed.
+6. Start the app so Flyway applies the migration.
+7. Run `./mvnw test`.
+
+### Add A New Use Case
+
+1. Add an inbound port under `core/katalog/application/port/in`.
+2. Implement it in an application service under `core/katalog/application/service`.
+3. Add or reuse an outbound port under `core/katalog/application/port/out` if persistence is needed.
+4. Implement the outbound port in `adapter/out`.
+5. Add an inbound adapter in `adapter/in`, usually a page controller or API controller.
+6. Run `./mvnw test`.
+
+### Rebuild CSS Manually
+
+If the Tailwind watcher is not running and you need to update `app.css`:
+
+```bash
+./bin/build-css.sh
+```
+
+Or use the npm script directly:
+
+```bash
+npm run build-prod
+```
+
+This is also run automatically during `./mvnw compile` and `./mvnw package`.
+
+---
+
+## Troubleshooting
+
+### `Connection to localhost:5432 refused`
+
+PostgreSQL is not running or Docker is not available. Start the database:
+
+```bash
+docker compose up -d
+```
+
+Then rerun the app or tests.
+
+### Flyway Checksum Error
+
+A migration file that already ran was edited. The normal fix is to undo the edit and create a new migration with the next version number.
+
+For local throwaway data only, reset the database:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+### API Returns Login Page Or `401`
+
+The HTML catalogue routes are public, but API routes are protected. Use HTTP Basic auth during development:
+
+```bash
+curl -u biren:biren http://localhost:8080/api/katalog/wohnungen
+```
+
+### CSS Changes Do Not Show Up
+
+1. Check that the Tailwind watcher is running (it is started by `./bin/dev.sh`).
+2. If you are not using `./bin/dev.sh`, run `./bin/build-css.sh` manually.
+3. Refresh the browser. DevTools LiveReload may not trigger if the watcher and Spring Boot are not running together.
+4. Check `static/css/app.css` in your editor to confirm the file was updated.
+
+### `./bin/dev.sh` Or `./bin/build-css.sh` Says `npm: command not found`
+
+Node.js and npm are not installed or not in your PATH. Install them:
+
+- **macOS**: `brew install node`
+- **Ubuntu/Debian**: `sudo apt install nodejs npm`
+- **Windows**: Download from `https://nodejs.org/`
+
+### `./bin/dev.sh` Says `node_modules is missing` And Hangs
+
+The first time you run `./bin/dev.sh` or `./bin/build-css.sh` after cloning the repository, the scripts will automatically run `npm install` if `node_modules` is missing. This can take 10-30 seconds depending on your internet connection. Wait for it to finish. On subsequent runs it will be instant.
+
+To avoid the delay, run `npm install` manually during one-time setup:
+
+```bash
+npm install
+```
+
+### `pollInterval must be greater than QuietPeriod` Error
+
+This was a DevTools configuration error where `spring.devtools.restart.poll-interval` was set equal to `spring.devtools.restart.quiet-period`. It has been fixed in `application.properties` (poll is now `2s`, quiet is `1s`). If you see this error, ensure `poll-interval` is strictly greater than `quiet-period`.
+
+### Browser Shows `404` For `/css/app.css`
+
+The compiled CSS file is missing. Rebuild it:
+
+```bash
+./bin/build-css.sh
+```
+
+Or start the app with `./bin/dev.sh`, which rebuilds CSS automatically.
+
+### `./bin/dev.sh` Does Not Stop Cleanly
+
+If you see zombie processes after pressing `Ctrl+C`:
+
+```bash
+# Find the Tailwind watcher
+pgrep -f "tailwindcss.*--watch"
+# Kill it
+pkill -f "tailwindcss.*--watch"
+```
+
+### IntelliJ Does Not Show Tailwind Autocompletion
+
+1. Make sure `npm install` has been run and `node_modules/tailwindcss` exists.
+2. Open **Settings → Languages & Frameworks → Style Sheets → Tailwind CSS**.
+3. Make sure the **Language Server** path is set to the bundled server or a globally installed `@tailwindcss/language-server`.
+4. Look at the **bottom status bar** in IntelliJ for the language services widget. Click it and restart the Tailwind CSS language server.
+5. Open a Thymeleaf HTML template and wait a few seconds for the server to initialize.
+
+If it still does not work, the issue is likely on the JetBrains side. The `tailwindcss` npm package in `node_modules` is the standard detection signal. As a last resort, try **File → Invalidate Caches → Invalidate and Restart**.
+
