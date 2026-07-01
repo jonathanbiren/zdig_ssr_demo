@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)">
+<head th:replace="~{fragments/htmx_ajs_webjars :: head(${title})}">
+</head>
+<div class="h-screen w-full flex-col overflow-hidden">
+    <header class="shrink-0">
+        <nav class="navbar bg-base-100 shadow-sm">
+            <a class="btn btn-ghost text-xl">SFA</a>
+        </nav>
+    </header>
+
+    <main class="flex-1 min-h-0 overflow-hidden">
+        <th:block th:replace="${content}"></th:block>
+    </main>
+
+    <footer class="shrink-0">
+        <div class="footer sm:footer-horizontal bg-neutral text-neutral-content p-10">
+            <nav>
+                <h6 class="footer-title">Services</h6>
+            </nav>
+            <nav>
+                <h6 class="footer-title">Company</h6>
+            </nav>
+            <nav>
+                <h6 class="footer-title">Legal</h6>
+            </nav>
+        </div>
+    </footer>
+
+</div>
+</html>

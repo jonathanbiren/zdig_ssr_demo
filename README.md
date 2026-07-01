@@ -2,9 +2,9 @@
 
 The backend application for Soldaten Wohnen. It serves both the backend API and the server-rendered HTML user interface.
 
-There is no separate JavaScript frontend project. Pages are rendered with **Thymeleaf**, small interactive updates use **HTMX**, styling is generated with **Tailwind CSS v4**, and data is stored in **PostgreSQL**.
+There is no separate JavaScript frontend project. Pages are rendered with **Thymeleaf**, small interactive updates use **HTMX**, client-side interactivity uses **Alpine.js**, styling is generated with **Tailwind CSS v4** and **DaisyUI 5**, and data is stored in **PostgreSQL**.
 
-**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or a frontend framework like React or Vue. The only JavaScript-related file is `package.json`, and it exists solely because **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in Thymeleaf templates.** No Node.js code runs in the browser.
+**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or an SPA framework like React or Vue. Two small JavaScript libraries do run in the browser — **HTMX** and **Alpine.js** — but they are loaded as minified files from WebJars, not built or bundled from source. The `package.json` exists for two reasons: **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in Thymeleaf templates**, and **DaisyUI 5** is installed as an npm package and used as a Tailwind CSS plugin. No Node.js code runs in the browser.
 
 ## Contents
 
@@ -28,7 +28,7 @@ There is no separate JavaScript frontend project. Pages are rendered with **Thym
 
 ### The Big Picture
 
-This is a **server-rendered web application**. The browser never runs a JavaScript framework. Instead:
+This is a **server-rendered web application**. The browser never runs an SPA framework or a JavaScript build step. Two small progressive-enhancement libraries — **HTMX** and **Alpine.js** — are loaded from WebJars for interactivity. Otherwise:
 
 1. The user clicks a link or submits a form.
 2. The browser sends a normal HTTP request to the Spring Boot server.
@@ -36,7 +36,8 @@ This is a **server-rendered web application**. The browser never runs a JavaScri
 4. **Thymeleaf** renders the HTML template on the server.
 5. The browser receives raw HTML and displays it.
 6. For small interactive updates (like filtering a list), **HTMX** intercepts the click, sends a background request, and swaps a fragment of the page without a full reload.
-7. **Tailwind CSS** provides the styling. It is a static CSS file served by Spring Boot like any other asset.
+7. For client-side state that doesn't need the server (like toggling a modal or a dropdown), **Alpine.js** handles it directly in the browser.
+8. **Tailwind CSS** together with **DaisyUI 5** provides the styling. The result is a static CSS file served by Spring Boot like any other asset.
 
 ### Why npm Is Present In This Project
 
@@ -73,6 +74,59 @@ There are **two independent hot-reload mechanisms** running in parallel during d
 3. It restarts the embedded server (fast, because only your code changed, not dependencies).
 4. The new logic is active on the next request.
 
+### When To Use Thymeleaf, HTMX, and Alpine.js
+
+The frontend uses three technologies that have some overlapping capabilities. The heuristic for choosing between them is based on **where the source of truth lives**:
+
+| Source of truth | Use |
+|---|---|
+| Server (auth, permissions, persisted data, server-known state at render time) | **Thymeleaf** |
+| Browser interaction after page load (toggles, dropdowns, tabs, transient UI state) | **Alpine.js** |
+| Server data that changes *after* initial render (search results, form validation against server state, loading new content) | **HTMX** |
+
+**One-line heuristic:** Thymeleaf decides what's on the page at all (and what's *allowed* to be). Alpine decides how what's already there behaves. HTMX brings in new pieces from the server when the client doesn't have them.
+
+### Security-sensitive rendering: always Thymeleaf
+
+`th:if` runs on the server — the hidden branch is never sent to the browser. It isn't in the HTML. `x-show` / `x-if` runs in the browser — the hidden markup *is* in the HTML, just `display:none`. DevTools reveals and toggles it in two clicks. Admin buttons, sensitive fields, anything `sec:authorize`-gated: **Thymeleaf only**. Alpine is for non-sensitive UI state.
+
+### Resolving the overlaps
+
+**Conditional rendering:**
+
+| Condition depends on… | Use |
+|---|---|
+| Auth / permissions / server-known state at render time | Thymeleaf `th:if` |
+| User interaction after page load (click, toggle, input) | Alpine `x-show` / `x-if` |
+| Server state that *changes after* load | HTMX re-fetch + Thymeleaf fragment |
+
+**"While typing" form validation — layer them in this order:**
+
+1. **HTML5** (`required`, `type="email"`, `pattern`, `minlength`) — free, native, first line.
+2. **Alpine.js** — instant feedback for rules the client knows (length counter, password match, regex). No network.
+3. **HTMX** (`hx-trigger="keyup changed delay:400ms"`) — for rules only the server can answer (username available, cross-record rules). Returns an error fragment.
+4. **Spring `@Valid` + Thymeleaf** — authoritative fallback that works without JS. Renders errors after a full submit.
+
+Heuristic: "valid email format" → Alpine/HTML5. "Username taken?" → HTMX. Always keep tier 4 regardless — tiers 1–3 are progressive enhancement.
+
+### They cooperate, they don't just divide
+
+One element can legitimately use all three — Thymeleaf decides *if* it's rendered (security), Alpine manages *open/close state*, HTMX *loads its content* from the server when opened:
+
+```html
+<button th:if="${#authorization.expression('hasRole(''ADMIN'')')}"
+        x-data="{ open: false }" @click="open = true"
+        class="btn btn-primary">Edit</button>
+
+<dialog class="modal" :class="open && 'modal-open'">
+  <div class="modal-box" hx-get="/wohnungen/42/edit" hx-target="this" hx-swap="innerHTML">
+    <!-- HTMX fills this with a Thymeleaf-rendered form when the modal opens -->
+  </div>
+</dialog>
+```
+
+The event bridge runs both ways: HTMX fires `htmx:afterSwap` that Alpine can listen for (re-initialise a widget on new content), and Alpine can call `htmx.trigger(el, 'refresh')` to fire an HTMX request from Alpine state.
+
 ---
 
 ## Current Stack
@@ -83,7 +137,9 @@ There are **two independent hot-reload mechanisms** running in parallel during d
 | Web framework | Spring Boot Web MVC | Controllers in `adapter/in` |
 | HTML rendering | Thymeleaf | `src/main/resources/templates` |
 | HTML fragment updates | HTMX | Served from a WebJar under `/webjars/**` |
-| Styling | Tailwind CSS v4 (via npm) | Source in `assets/styles.css`, output in `static/css/app.css` |
+| Client-side interactivity | Alpine.js | Served from a WebJar under `/webjars/**` |
+| Styling: utilities | Tailwind CSS v4 (via npm) | Source in `assets/styles.css`, output in `static/css/app.css` |
+| Styling: components | DaisyUI 5 (via npm) | Configured as a Tailwind plugin in `assets/styles.css` |
 | CSS build tool | `@tailwindcss/cli` (via npm) | Scripts in `package.json` |
 | Database access | Spring Data JDBC | `adapter/out/WohnungRepositoryAdapter.kt` |
 | Database | PostgreSQL | Docker Compose at `docker-compose.yml` |
@@ -109,7 +165,7 @@ docker compose up -d
 npm install
 ```
 
-This installs `tailwindcss` and `@tailwindcss/cli` into `node_modules/`. It is ignored by git. The `tailwindcss` package is what IntelliJ detects for autocompletion. The `@tailwindcss/cli` package provides the `tailwindcss` command used by the build scripts.
+This installs `tailwindcss`, `@tailwindcss/cli`, and `daisyui` into `node_modules/`. It is ignored by git. The `tailwindcss` package is what IntelliJ detects for autocompletion. The `@tailwindcss/cli` package provides the `tailwindcss` command used by the build scripts. The `daisyui` package is the component library used as a Tailwind CSS plugin.
 
 You need **Node.js and npm** installed on your machine for this step. You do not need to know anything about npm beyond running `npm install` and the occasional `npm update`.
 
@@ -190,10 +246,27 @@ Maven automatically runs `./bin/build-css.sh` during the `generate-resources` ph
 
 ### Source File
 
-`src/main/resources/assets/styles.css` is the **source** file. It is a valid CSS file that uses Tailwind v4 directives:
+`src/main/resources/assets/styles.css` is the **source** file. It is a valid CSS file that uses Tailwind v4 directives plus the DaisyUI plugin:
 
 ```css
 @import "tailwindcss";
+@plugin "daisyui" {
+  themes: false;
+}
+@plugin "daisyui/theme" {
+  name: "sowo";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(20% 0.02 255);
+  /* ...all theme color tokens... */
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.75rem;
+  /* ...size, border, depth, noise... */
+}
 
 @source "../templates/**/*.html";
 @source "../../kotlin/**/*.kt";
@@ -207,11 +280,26 @@ Maven automatically runs `./bin/build-css.sh` during the `generate-resources` ph
 ```
 
 - `@import "tailwindcss"` brings in the entire Tailwind framework.
-- `@source` tells Tailwind which files to scan for class names. This is how Tailwind knows which utility classes to include in the output.
-- `@theme` defines custom design tokens (colors, fonts, spacing) using CSS custom properties.
+- `@plugin "daisyui"` registers DaisyUI 5 as a Tailwind plugin. `themes: false` disables all 35 built-in themes so they don't leak into the output.
+- `@plugin "daisyui/theme"` defines a custom theme called `sowo`. Every color, radius, and size token is set here. This is how the site avoids looking like a generic DaisyUI site — all 35 built-in themes are disabled and only `sowo` ships.
+- `@source` tells Tailwind which files to scan for class names. This is how Tailwind knows which utility *and* DaisyUI component classes to include in the output.
+- `@theme` defines custom Tailwind design tokens (fonts, spacing) using CSS custom properties.
 - `@layer base` and `@layer components` are for your own custom CSS.
 
 **No `tailwind.config.js` or `postcss.config.js` is needed.** Tailwind v4 is fully configured inside the CSS file itself.
+
+### Styling Philosophy: DaisyUI vs Tailwind
+
+**DaisyUI is the bread and butter. Tailwind is the fine-tuning.**
+
+- Use **DaisyUI component classes** (`btn`, `card`, `badge`, `table`, `modal`, `tabs`, `menu`, `drawer`, `alert`, `input`, `select`, etc.) for the vast majority of the UI. They are semantic, terse, and consistent across all 50 screens. Restyle them globally by editing the `sowo` theme tokens in `styles.css` — one change updates every instance.
+- Use **Tailwind utility classes** for layout, spacing, and one-off customisation that DaisyUI's component classes weren't designed for (e.g. a bespoke marketing hero with asymmetric layout). Add utilities alongside DaisyUI classes: `class="btn btn-primary rounded-none"`.
+
+The `sowo` theme is the single point of customisation for the site's visual identity. Change `--color-primary`, `--radius-box`, `--depth`, etc. and every DaisyUI component updates. Do not override component styles piecemeal across templates — that defeats the purpose of having a theme.
+
+### JIT Pruning
+
+DaisyUI component classes (`.btn`, `.card`, `.badge`, etc.) are only emitted into `app.css` **if they appear in a scanned template**. Tailwind v4's JIT engine scans the `@source` files and prunes everything unused. This means the CSS bundle grows only with what you actually use — typically 6–10 KB gzipped for a moderate set of components, compared to shipping the entire library.
 
 ### Compiled File
 
@@ -443,10 +531,11 @@ soldaten-wohnen/
 |   |       |   |-- css/
 |   |       |       |-- app.css         # Generated CSS served by Spring Boot
 |   |       |-- templates/
-|   |       |   |-- fragments/site.html
-|   |       |   |-- wohnungen/index.html
-|   |       |   |-- wohnungen/detail.html
-|   |       |   |-- wohnungen/fragments.html
+|   |       |   |-- fragments/htmx_ajs.html    # Shared <head> with HTMX + Alpine.js WebJars
+|   |       |   |-- katalog/index.html          # Landing/catalogue page
+|   |       |   |-- katalog/fragments/heroSection.html
+|   |       |   |-- katalog/fragments/featureSection.html
+|   |       |   |-- katalog/hx-fragments/page-update.html
 |   |       |-- db/migration/
 |   |           |-- V1__create_wohnungen.sql
 |   |           |-- V2__seed_wohnungen.sql
@@ -459,7 +548,7 @@ soldaten-wohnen/
 | File | Why it matters |
 |---|---|
 | `pom.xml` | Maven dependencies, Kotlin compiler, exec plugin for CSS build |
-| `package.json` | Tailwind CSS version and npm build scripts (`build`, `build-prod`, `watch`) |
+| `package.json` | Tailwind CSS + DaisyUI versions and npm build scripts (`build`, `build-prod`, `watch`) |
 | `application.properties` | App name, datasource, Flyway, security, Thymeleaf, DevTools |
 | `SecurityConfig.kt` | Public page routes and protected API routes |
 | `KatalogPageController.kt` | Thymeleaf page routes and HTMX fragment routes |
@@ -467,8 +556,8 @@ soldaten-wohnen/
 | `WohnungDetailAnzeigenController.kt` | JSON API detail endpoint |
 | `WohnungRepositoryAdapter.kt` | Spring Data JDBC row mapping and repository adapter |
 | `Wohnung.kt` | Domain model for apartments |
-| `templates/wohnungen/*.html` | Catalogue page, detail page, and reusable fragments |
-| `assets/styles.css` | Tailwind v4 source file |
+| `templates/katalog/*.html` | Catalogue page and reusable fragments |
+| `assets/styles.css` | Tailwind v4 + DaisyUI 5 source file (plugin, `sowo` theme, custom layers) |
 | `static/css/app.css` | Generated CSS served by Spring Boot |
 | `db/migration/*.sql` | Flyway schema migrations |
 
@@ -503,7 +592,7 @@ The `package.json` and `node_modules` exist **only** to satisfy the IDE. They ar
 |---|---|
 | **IDE autocompletion works** | IntelliJ provides Tailwind class completion, hover documentation, and CSS preview in HTML templates. |
 | **Standard ecosystem** | The `build`, `build-prod`, `watch` scripts in `package.json` match the setup described in *Taming Thymeleaf* and other learning resources. |
-| **Easy plugin additions** | If you ever need a Tailwind plugin (e.g., `@tailwindcss/forms`), you can add it to `package.json` like any other npm dependency. |
+| **Easy plugin additions** | Tailwind plugins like DaisyUI can be added to `package.json` and registered with `@plugin` in `styles.css`. |
 | **Explicit version management** | `package.json` records the exact Tailwind version. Upgrading is a single `npm update` command. |
 
 ### Disadvantages Of The npm Route
@@ -518,7 +607,7 @@ The `package.json` and `node_modules` exist **only** to satisfy the IDE. They ar
 
 ### The Bottom Line
 
-The npm route is a **pragmatic compromise**. It introduces a small amount of JavaScript tooling into an otherwise JavaScript-free project, but the payoff is a significantly better development experience inside IntelliJ IDEA. The browser still receives plain HTML and CSS. No JavaScript framework is involved.
+The npm route is a **pragmatic compromise**. It introduces a small amount of JavaScript tooling into an otherwise build-pipeline-free project, but the payoff is a significantly better development experience inside IntelliJ IDEA and access to the Tailwind plugin ecosystem (DaisyUI). The browser receives plain HTML and CSS plus two small progressive-enhancement libraries (HTMX, Alpine.js) loaded from WebJars. No SPA framework or JavaScript build step is involved.
 
 ---
 
@@ -550,6 +639,26 @@ To see exactly what changed, check the Tailwind releases page:
 
 ```text
 https://github.com/tailwindlabs/tailwindcss/releases
+```
+
+### Update DaisyUI
+
+DaisyUI is updated similarly:
+
+```bash
+npm update daisyui
+```
+
+Then rebuild the CSS and verify the application still looks correct:
+
+```bash
+./bin/build-css.sh
+```
+
+Check the DaisyUI changelog for breaking changes:
+
+```text
+https://daisyui.com/docs/changelog/
 ```
 
 ### Update Spring Boot And Kotlin
@@ -611,18 +720,26 @@ After any dependency change, run:
 ### Add A New HTML Page
 
 1. Add a Thymeleaf template under `src/main/resources/templates`.
-2. Add a method to a controller in `adapter/in`.
-3. Return the template name from the controller method.
-4. If you used new Tailwind classes, save the template. The Tailwind watcher (if running) or `./bin/build-css.sh` will update `app.css`.
-5. Run `./mvnw test`.
+2. Set `data-theme="sowo"` on the `<html>` tag (or include a shared layout fragment that does this).
+3. Add a method to a controller in `adapter/in`.
+4. Return the template name from the controller method.
+5. If you used new DaisyUI or Tailwind classes, save the template. The Tailwind watcher (if running) or `./bin/build-css.sh` will update `app.css`.
+6. Run `./mvnw test`.
 
 ### Add An HTMX Interaction
 
 1. Add `hx-get`, `hx-post`, or another HTMX attribute to a template.
 2. Add a controller method that returns a Thymeleaf fragment, not a whole page.
-3. Put the fragment in a template such as `wohnungen/fragments.html`.
+3. Put the fragment in a template such as `katalog/hx-fragments/`.
 4. Keep the response HTML small and focused on the element being swapped.
 5. Run `./mvnw test`.
+
+### Add An Alpine.js Interaction
+
+1. Add `x-data` to the element that needs local state (e.g. `x-data="{ open: false }"`).
+2. Use `x-show`, `@click`, `x-bind`, etc. for the interaction. No controller method is needed — Alpine runs entirely in the browser.
+3. Use Alpine for non-sensitive UI state only (toggles, tabs, dropdowns). For security-gated rendering, use Thymeleaf `th:if` instead.
+4. Run `./mvnw test`.
 
 ### Add A New Column To `wohnungen`
 

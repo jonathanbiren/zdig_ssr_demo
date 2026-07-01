@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" th:replace="~{layout.html::layout('SFA', ~{::section})}">
+
+<section class="h-full flex flex-col items-center justify-center">
+    <table class="table table-lg">
+        <thead>
+        <tr>
+            <th>Kurzname</th>
+            <th>Name</th>
+            <th>ZS-NR</th>
+            <th>Adresse</th>
+            <th>Status</th> <!-- Enum -->
+            <th>Besonders Schützenswert</th> <!--Boolean-->
+            <th>Aktion</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>AI</td>
+            <td>Ankunding Inc</td>
+            <td>4582</td>
+            <td>56077 Koblenz</td>
+            <td>Ausgeschieden</td>
+            <td>X</td>
+            <td>Edit Delete</td>
+        </tr>
+        <tr>
+            <td>BRAL</td>
+            <td>Bayer</td>
+            <td>4480</td>
+            <td>40219 Düsseldorf</td>
+            <td>In Aufnahme</td>
+            <td>X</td>
+            <td>Edit Delete</td>
+        </tr>
+        </tbody>
+    </table>
+</section>
+
+</html>
