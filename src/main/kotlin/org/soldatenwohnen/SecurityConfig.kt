@@ -16,12 +16,15 @@ class SecurityConfig {
                         "/",
                         "/wohnungen",
                         "/wohnungen/**",
+                         "/kunden",
+                         "/kunden/**",
                         "/css/**",
                         "/webjars/**",
                         "/favicon.ico"
                     ).permitAll()
                     .anyRequest().authenticated()
             }
+            .csrf { it.disable() }
             .formLogin { }
             .httpBasic { }
             .build()

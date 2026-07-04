@@ -2,7 +2,7 @@
 <html lang="de" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)">
 <head th:replace="~{fragments/htmx_ajs_webjars :: head(${title})}">
 </head>
-<div class="h-screen w-full flex-col overflow-hidden">
+<div class="h-screen w-full flex flex-col overflow-hidden bg-secondary">
     <header class="shrink-0">
         <nav class="navbar bg-base-100 shadow-sm">
             <a class="btn btn-ghost text-xl">SFA</a>
@@ -16,13 +16,7 @@
     <footer class="shrink-0">
         <div class="footer sm:footer-horizontal bg-neutral text-neutral-content p-10">
             <nav>
-                <h6 class="footer-title">Services</h6>
-            </nav>
-            <nav>
-                <h6 class="footer-title">Company</h6>
-            </nav>
-            <nav>
-                <h6 class="footer-title">Legal</h6>
+                ZDig BW
             </nav>
         </div>
     </footer>
