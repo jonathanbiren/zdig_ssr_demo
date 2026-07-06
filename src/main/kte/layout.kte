@@ -1,7 +1,9 @@
+@import gg.jte.Content
+@param title: String
+@param content: Content
 <!DOCTYPE html>
-<html lang="de" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)">
-<head th:replace="~{fragments/htmx_ajs_webjars :: head(${title})}">
-</head>
+<html lang="de">
+@template.head(title = title)
 <div class="h-screen w-full flex flex-col overflow-hidden bg-secondary">
     <header class="shrink-0">
         <nav class="navbar bg-base-100 shadow-sm">
@@ -10,7 +12,7 @@
     </header>
 
     <main class="flex-1 min-h-0 overflow-hidden">
-        <th:block th:replace="${content}"></th:block>
+        ${content}
     </main>
 
     <footer class="shrink-0">
@@ -20,6 +22,5 @@
             </nav>
         </div>
     </footer>
-
 </div>
 </html>

@@ -1,0 +1,16 @@
+@import gg.jte.Content
+@param name: String
+@template.layout(title = "JTE Test", content = @`
+    <section class="h-full flex flex-col gap-4 p-4 mx-auto w-full max-w-7xl mt-2">
+        <div class="bg-base-200 rounded-box p-4 shadow-sm">
+            <h1 class="text-2xl font-bold text-primary">JTE Test Page</h1>
+            <p class="text-base-content mt-2">Hello, <span class="text-secondary font-semibold">${name}</span>!</p>
+            <p class="text-sm text-base-content/70 mt-1">If you can see this page with proper styling, JTE + Tailwind + DaisyUI is working correctly.</p>
+        </div>
+        <div class="flex gap-2">
+            <button class="btn btn-primary">Primary Button</button>
+            <button class="btn btn-secondary">Secondary Button</button>
+            <span class="badge badge-accent">Badge</span>
+        </div>
+    </section>
+`)

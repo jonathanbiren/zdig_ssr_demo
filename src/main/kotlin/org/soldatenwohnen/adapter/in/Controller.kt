@@ -6,38 +6,18 @@ import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 
 @Controller
 class Controller() {
 
 	@GetMapping("/")
-	fun index(model: Model): String {
-		model.addAttribute("kundenListe", listeAllerKunden)
-		return "sfa/index"
-	}
+	fun index(): String = "redirect:/jte-test"
 
-	@HxRequest
-	@GetMapping("/kunden")
-	fun kundenSuchen(
-		@RequestParam(value = "sucheingabe", required = false) sucheingabe: String?,
-		model: Model
-	): String {
-		val suchbegriff = sucheingabe?.trim()?.lowercase()
-		val gefilterteListe = if (suchbegriff.isNullOrEmpty()) {
-			listeAllerKunden
-		} else {
-			listeAllerKunden.filter { k ->
-				k.kurzname.lowercase().contains(suchbegriff) ||
-				k.name.lowercase().contains(suchbegriff) ||
-				k.adresse.lowercase().contains(suchbegriff) ||
-				k.status.lowercase().contains(suchbegriff) ||
-				k.zsNummer.toString().contains(suchbegriff)
-			}
-		}
-		model.addAttribute("kundenListe", gefilterteListe)
-		return "sfa/index :: kundenTabelle"
+	@GetMapping("/jte-test")
+	fun jteTest(model: Model): String {
+		model.addAttribute("name", "Soldaten Wohnen")
+		return "test"
 	}
 
 	@HxRequest

@@ -2,9 +2,9 @@
 
 The backend application for Soldaten Wohnen. It serves both the backend API and the server-rendered HTML user interface.
 
-There is no separate JavaScript frontend project. Pages are rendered with **Thymeleaf**, small interactive updates use **HTMX**, client-side interactivity uses **Alpine.js**, styling is generated with **Tailwind CSS v4** and **DaisyUI 5**, and data is stored in **PostgreSQL**.
+There is no separate JavaScript frontend project. Pages are rendered with **JTE**, small interactive updates use **HTMX**, client-side interactivity uses **Alpine.js**, styling is generated with **Tailwind CSS v4** and **DaisyUI 5**, and data is stored in **PostgreSQL**.
 
-**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or an SPA framework like React or Vue. Two small JavaScript libraries do run in the browser — **HTMX** and **Alpine.js** — but they are loaded as minified files from WebJars, not built or bundled from source. The `package.json` exists for two reasons: **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in Thymeleaf templates**, and **DaisyUI 5** is installed as an npm package and used as a Tailwind CSS plugin. No Node.js code runs in the browser.
+**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or an SPA framework like React or Vue. Two small JavaScript libraries do run in the browser — **HTMX** and **Alpine.js** — but they are loaded as minified files from WebJars, not built or bundled from source. The `package.json` exists for two reasons: **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in JTE templates**, and **DaisyUI 5** is installed as an npm package and used as a Tailwind CSS plugin. No Node.js code runs in the browser.
 
 ## Contents
 
@@ -33,7 +33,7 @@ This is a **server-rendered web application**. The browser never runs an SPA fra
 1. The user clicks a link or submits a form.
 2. The browser sends a normal HTTP request to the Spring Boot server.
 3. Spring Boot runs Kotlin code, queries PostgreSQL, and decides what HTML to return.
-4. **Thymeleaf** renders the HTML template on the server.
+4. **JTE** renders the KTE template on the server.
 5. The browser receives raw HTML and displays it.
 6. For small interactive updates (like filtering a list), **HTMX** intercepts the click, sends a background request, and swaps a fragment of the page without a full reload.
 7. For client-side state that doesn't need the server (like toggling a modal or a dropdown), **Alpine.js** handles it directly in the browser.
@@ -46,26 +46,28 @@ Tailwind CSS v4 can be installed and run in two ways:
 1. **Standalone CLI** — a single binary, no npm required. Fast and self-contained.
 2. **npm package** — installed via `npm install`. Slightly more overhead, but universally supported by IDE tooling.
 
-**This project uses the npm package.** The reason is simple: IntelliJ IDEA's Tailwind CSS Language Server detects the `tailwindcss` package in `node_modules` and uses it to provide class autocompletion, hover documentation, and CSS preview inside Thymeleaf HTML templates. Without the npm package, the language server does not activate, and you get no autocomplete.
+**This project uses the npm package.** The reason is simple: IntelliJ IDEA's Tailwind CSS Language Server detects the `tailwindcss` package in `node_modules` and uses it to provide class autocompletion, hover documentation, and CSS preview inside KTE templates. Without the npm package, the language server does not activate, and you get no autocomplete.
 
 This is the **only** reason `package.json` and `node_modules` exist. They are not used for a JavaScript build pipeline, a frontend framework, or client-side bundling.
 
 ### How Hot Reload Works
 
-There are **two independent hot-reload mechanisms** running in parallel during development:
+There are **three independent hot-reload mechanisms** running in parallel during development:
 
 | Mechanism | Watches | What happens |
 |---|---|---|
-| **Tailwind CSS `--watch`** | `assets/styles.css`, HTML templates, Kotlin source files | Recompiles `static/css/app.css` whenever you add or remove Tailwind classes |
+| **JTE file watcher** | `src/main/kte/*.kte` | Recompiles changed templates on the fly (enabled by `gg.jte.developmentMode=true`). No server restart needed. |
+| **Tailwind CSS `--watch`** | `assets/styles.css`, KTE templates, Kotlin source files | Recompiles `static/css/app.css` whenever you add or remove Tailwind classes |
 | **Spring Boot DevTools** | `static/` directory, classpath (Kotlin/Java files) | Restarts the server on code changes; triggers LiveReload in the browser when static assets change |
 
-**The flow when you edit a template:**
+**The flow when you edit a KTE template:**
 
-1. You add a new Tailwind class to an HTML template.
-2. Tailwind's watcher detects the change and rebuilds `app.css` (takes ~40ms).
-3. Spring Boot DevTools detects that `app.css` was modified.
-4. DevTools either triggers a browser LiveReload, or the next page request simply serves the new file.
-5. You see the change immediately without manually refreshing.
+1. You add a new Tailwind class to a KTE template.
+2. JTE detects the change and recompiles the template on the next request — no restart needed.
+3. Tailwind's watcher detects the change and rebuilds `app.css` (takes ~40ms).
+4. Spring Boot DevTools detects that `app.css` was modified.
+5. DevTools either triggers a browser LiveReload, or the next page request simply serves the new file.
+6. You see the change immediately without manually refreshing.
 
 **The flow when you edit Kotlin code:**
 
@@ -74,21 +76,21 @@ There are **two independent hot-reload mechanisms** running in parallel during d
 3. It restarts the embedded server (fast, because only your code changed, not dependencies).
 4. The new logic is active on the next request.
 
-### When To Use Thymeleaf, HTMX, and Alpine.js
+### When To Use JTE, HTMX, and Alpine.js
 
 The frontend uses three technologies that have some overlapping capabilities. The heuristic for choosing between them is based on **where the source of truth lives**:
 
 | Source of truth | Use |
 |---|---|
-| Server (auth, permissions, persisted data, server-known state at render time) | **Thymeleaf** |
+| Server (auth, permissions, persisted data, server-known state at render time) | **JTE** |
 | Browser interaction after page load (toggles, dropdowns, tabs, transient UI state) | **Alpine.js** |
 | Server data that changes *after* initial render (search results, form validation against server state, loading new content) | **HTMX** |
 
-**One-line heuristic:** Thymeleaf decides what's on the page at all (and what's *allowed* to be). Alpine decides how what's already there behaves. HTMX brings in new pieces from the server when the client doesn't have them.
+**One-line heuristic:** JTE decides what's on the page at all (and what's *allowed* to be). Alpine decides how what's already there behaves. HTMX brings in new pieces from the server when the client doesn't have them.
 
-### Security-sensitive rendering: always Thymeleaf
+### Security-sensitive rendering: always JTE
 
-`th:if` runs on the server — the hidden branch is never sent to the browser. It isn't in the HTML. `x-show` / `x-if` runs in the browser — the hidden markup *is* in the HTML, just `display:none`. DevTools reveals and toggles it in two clicks. Admin buttons, sensitive fields, anything `sec:authorize`-gated: **Thymeleaf only**. Alpine is for non-sensitive UI state.
+`@if` runs on the server — the hidden branch is never sent to the browser. It isn't in the HTML. `x-show` / `x-if` runs in the browser — the hidden markup *is* in the HTML, just `display:none`. DevTools reveals and toggles it in two clicks. Admin buttons, sensitive fields, anything security-gated: **JTE only**. Alpine is for non-sensitive UI state.
 
 ### Resolving the overlaps
 
@@ -96,31 +98,32 @@ The frontend uses three technologies that have some overlapping capabilities. Th
 
 | Condition depends on… | Use |
 |---|---|
-| Auth / permissions / server-known state at render time | Thymeleaf `th:if` |
+| Auth / permissions / server-known state at render time | JTE `@if` |
 | User interaction after page load (click, toggle, input) | Alpine `x-show` / `x-if` |
-| Server state that *changes after* load | HTMX re-fetch + Thymeleaf fragment |
+| Server state that *changes after* load | HTMX re-fetch + JTE template |
 
 **"While typing" form validation — layer them in this order:**
 
 1. **HTML5** (`required`, `type="email"`, `pattern`, `minlength`) — free, native, first line.
 2. **Alpine.js** — instant feedback for rules the client knows (length counter, password match, regex). No network.
 3. **HTMX** (`hx-trigger="keyup changed delay:400ms"`) — for rules only the server can answer (username available, cross-record rules). Returns an error fragment.
-4. **Spring `@Valid` + Thymeleaf** — authoritative fallback that works without JS. Renders errors after a full submit.
+4. **Spring `@Valid` + JTE** — authoritative fallback that works without JS. Renders errors after a full submit.
 
 Heuristic: "valid email format" → Alpine/HTML5. "Username taken?" → HTMX. Always keep tier 4 regardless — tiers 1–3 are progressive enhancement.
 
 ### They cooperate, they don't just divide
 
-One element can legitimately use all three — Thymeleaf decides *if* it's rendered (security), Alpine manages *open/close state*, HTMX *loads its content* from the server when opened:
+One element can legitimately use all three — JTE decides *if* it's rendered (security), Alpine manages *open/close state*, HTMX *loads its content* from the server when opened:
 
-```html
-<button th:if="${#authorization.expression('hasRole(''ADMIN'')')}"
-        x-data="{ open: false }" @click="open = true"
+```kte
+@if(user.hasRole("ADMIN"))
+<button x-data="{ open: false }" @click="open = true"
         class="btn btn-primary">Edit</button>
+@endif
 
 <dialog class="modal" :class="open && 'modal-open'">
   <div class="modal-box" hx-get="/wohnungen/42/edit" hx-target="this" hx-swap="innerHTML">
-    <!-- HTMX fills this with a Thymeleaf-rendered form when the modal opens -->
+    <!-- HTMX fills this with a JTE-rendered form when the modal opens -->
   </div>
 </dialog>
 ```
@@ -135,7 +138,7 @@ The event bridge runs both ways: HTMX fires `htmx:afterSwap` that Alpine can lis
 |---|---|---|
 | JVM language | Kotlin | `src/main/kotlin` |
 | Web framework | Spring Boot Web MVC | Controllers in `adapter/in` |
-| HTML rendering | Thymeleaf | `src/main/resources/templates` |
+| HTML rendering | JTE (.kte) | `src/main/kte` |
 | HTML fragment updates | HTMX | Served from a WebJar under `/webjars/**` |
 | Client-side interactivity | Alpine.js | Served from a WebJar under `/webjars/**` |
 | Styling: utilities | Tailwind CSS v4 (via npm) | Source in `assets/styles.css`, output in `static/css/app.css` |
@@ -197,7 +200,7 @@ Data persists in a Docker volume, so stopping and restarting the container does 
 
 This script does two things simultaneously:
 
-1. Starts **Tailwind CSS in `--watch` mode** in the background. It watches `assets/styles.css` and all HTML/Kotlin templates, and rebuilds `static/css/app.css` on every change.
+1. Starts **Tailwind CSS in `--watch` mode** in the background. It watches `assets/styles.css` and all KTE/Kotlin templates, and rebuilds `static/css/app.css` on every change.
 2. Starts **Spring Boot** in the foreground. DevTools is active. LiveReload runs on port `35729`.
 
 Press `Ctrl+C` to stop both processes cleanly.
@@ -212,7 +215,7 @@ The home route `/` redirects to the catalogue page.
 
 ### 4. Make Changes And See Them Instantly
 
-- **Edit HTML templates**: Save the file. Tailwind rebuilds CSS if you added new classes. The browser may auto-reload via LiveReload.
+- **Edit KTE templates**: Save the file. JTE hot-reloads the template. Tailwind rebuilds CSS if you added new classes. The browser may auto-reload via LiveReload.
 - **Edit Kotlin code**: Save the file. Spring Boot DevTools restarts the server in ~1-2 seconds.
 - **Edit `assets/styles.css`**: Save the file. Tailwind rebuilds immediately.
 
@@ -268,7 +271,7 @@ Maven automatically runs `./bin/build-css.sh` during the `generate-resources` ph
   /* ...size, border, depth, noise... */
 }
 
-@source "../templates/**/*.html";
+@source "../../kte/**/*.kte";
 @source "../../kotlin/**/*.kt";
 
 @theme {
@@ -343,7 +346,7 @@ Run `npm install` again. Both `build-css.sh` and `dev.sh` will automatically run
 
 ### Public HTML Routes
 
-Rendered with Thymeleaf and accessible without authentication:
+Rendered with JTE and accessible without authentication:
 
 | Route | Purpose |
 |---|---|
@@ -488,7 +491,7 @@ Browser
 -> PostgreSQL
 ```
 
-Dependency direction points inward. The domain model does not know about Spring MVC, Thymeleaf, JDBC, Flyway, or PostgreSQL.
+Dependency direction points inward. The domain model does not know about Spring MVC, JTE, JDBC, Flyway, or PostgreSQL.
 
 ---
 
@@ -524,21 +527,21 @@ soldaten-wohnen/
 |   |   |               |-- application/port/out/WohnungRepository.kt
 |   |   |               |-- application/service/WohnungssucheService.kt
 |   |   |-- resources/
-|   |       |-- application.properties   # App config, datasource, security, Thymeleaf, DevTools
+|   |       |-- application.properties   # App config, datasource, security, JTE, DevTools
 |   |       |-- assets/
 |   |       |   |-- styles.css          # Tailwind v4 source file
 |   |       |-- static/
 |   |       |   |-- css/
 |   |       |       |-- app.css         # Generated CSS served by Spring Boot
-|   |       |-- templates/
-|   |       |   |-- fragments/htmx_ajs.html    # Shared <head> with HTMX + Alpine.js WebJars
-|   |       |   |-- katalog/index.html          # Landing/catalogue page
-|   |       |   |-- katalog/fragments/heroSection.html
-|   |       |   |-- katalog/fragments/featureSection.html
-|   |       |   |-- katalog/hx-fragments/page-update.html
+|   |       |-- templates/              # Old Thymeleaf templates (pending migration to KTE)
+|   |       |   |-- sfa/index.html      # Reference for migration
 |   |       |-- db/migration/
 |   |           |-- V1__create_wohnungen.sql
 |   |           |-- V2__seed_wohnungen.sql
+|   |-- kte/                            # JTE Kotlin templates
+|   |   |-- layout.kte                  # Shared layout (head, header, footer)
+|   |   |-- head.kte                    # <head> with CSS, HTMX, Alpine.js WebJars
+|   |   |-- test.kte                    # Test page
 |   |-- test/
 |       |-- kotlin/org/soldatenwohnen/SoldatenWohnenApplicationTests.kt
 ```
@@ -547,16 +550,16 @@ soldaten-wohnen/
 
 | File | Why it matters |
 |---|---|
-| `pom.xml` | Maven dependencies, Kotlin compiler, exec plugin for CSS build |
+| `pom.xml` | Maven dependencies, Kotlin compiler, JTE plugin, exec plugin for CSS build |
 | `package.json` | Tailwind CSS + DaisyUI versions and npm build scripts (`build`, `build-prod`, `watch`) |
-| `application.properties` | App name, datasource, Flyway, security, Thymeleaf, DevTools |
+| `application.properties` | App name, datasource, Flyway, security, JTE, DevTools |
 | `SecurityConfig.kt` | Public page routes and protected API routes |
-| `KatalogPageController.kt` | Thymeleaf page routes and HTMX fragment routes |
+| `Controller.kt` | JTE page routes and HTMX template routes |
 | `WohnungenAuflistenController.kt` | JSON API list endpoint |
 | `WohnungDetailAnzeigenController.kt` | JSON API detail endpoint |
 | `WohnungRepositoryAdapter.kt` | Spring Data JDBC row mapping and repository adapter |
 | `Wohnung.kt` | Domain model for apartments |
-| `templates/katalog/*.html` | Catalogue page and reusable fragments |
+| `kte/*.kte` | JTE Kotlin templates (layout, head, pages) |
 | `assets/styles.css` | Tailwind v4 + DaisyUI 5 source file (plugin, `sowo` theme, custom layers) |
 | `static/css/app.css` | Generated CSS served by Spring Boot |
 | `db/migration/*.sql` | Flyway schema migrations |
@@ -580,7 +583,7 @@ We initially used the **standalone CLI**. The build worked perfectly. CSS compil
 
 ### Why We Switched To npm
 
-**IntelliJ IDEA does not support the standalone CLI for autocompletion.** Its bundled Tailwind CSS Language Server is designed around the npm ecosystem. It looks for `node_modules/tailwindcss` to detect a Tailwind project. Without that package, the language server never activates, and you get **no class autocompletion** inside Thymeleaf HTML templates.
+**IntelliJ IDEA does not support the standalone CLI for autocompletion.** Its bundled Tailwind CSS Language Server is designed around the npm ecosystem. It looks for `node_modules/tailwindcss` to detect a Tailwind project. Without that package, the language server never activates, and you get **no class autocompletion** inside KTE templates.
 
 JetBrains documentation recommends installing `@tailwindcss/language-server` globally and pointing IntelliJ to it, but in practice this does not work reliably for Tailwind v4 projects without a local `node_modules/tailwindcss` installation.
 
@@ -590,8 +593,8 @@ The `package.json` and `node_modules` exist **only** to satisfy the IDE. They ar
 
 | Advantage | Explanation |
 |---|---|
-| **IDE autocompletion works** | IntelliJ provides Tailwind class completion, hover documentation, and CSS preview in HTML templates. |
-| **Standard ecosystem** | The `build`, `build-prod`, `watch` scripts in `package.json` match the setup described in *Taming Thymeleaf* and other learning resources. |
+| **IDE autocompletion works** | IntelliJ provides Tailwind class completion, hover documentation, and CSS preview in KTE templates. |
+| **Standard ecosystem** | The `build`, `build-prod`, `watch` scripts in `package.json` match common Tailwind CSS learning resources. |
 | **Easy plugin additions** | Tailwind plugins like DaisyUI can be added to `package.json` and registered with `@plugin` in `styles.css`. |
 | **Explicit version management** | `package.json` records the exact Tailwind version. Upgrading is a single `npm update` command. |
 
@@ -719,18 +722,18 @@ After any dependency change, run:
 
 ### Add A New HTML Page
 
-1. Add a Thymeleaf template under `src/main/resources/templates`.
-2. Set `data-theme="sowo"` on the `<html>` tag (or include a shared layout fragment that does this).
+1. Add a KTE template under `src/main/kte`.
+2. Use `@template.layout(title = "...", content = @` ... `)` to include the shared layout (head, header, footer).
 3. Add a method to a controller in `adapter/in`.
-4. Return the template name from the controller method.
+4. Return the template name from the controller method (without the `.kte` suffix).
 5. If you used new DaisyUI or Tailwind classes, save the template. The Tailwind watcher (if running) or `./bin/build-css.sh` will update `app.css`.
 6. Run `./mvnw test`.
 
 ### Add An HTMX Interaction
 
-1. Add `hx-get`, `hx-post`, or another HTMX attribute to a template.
-2. Add a controller method that returns a Thymeleaf fragment, not a whole page.
-3. Put the fragment in a template such as `katalog/hx-fragments/`.
+1. Add `hx-get`, `hx-post`, or another HTMX attribute to a KTE template.
+2. Add a controller method that returns a KTE template name, not a whole page.
+3. Put the template in `src/main/kte/` (optionally in a subdirectory).
 4. Keep the response HTML small and focused on the element being swapped.
 5. Run `./mvnw test`.
 
@@ -738,7 +741,7 @@ After any dependency change, run:
 
 1. Add `x-data` to the element that needs local state (e.g. `x-data="{ open: false }"`).
 2. Use `x-show`, `@click`, `x-bind`, etc. for the interaction. No controller method is needed — Alpine runs entirely in the browser.
-3. Use Alpine for non-sensitive UI state only (toggles, tabs, dropdowns). For security-gated rendering, use Thymeleaf `th:if` instead.
+3. Use Alpine for non-sensitive UI state only (toggles, tabs, dropdowns). For security-gated rendering, use JTE `@if` instead.
 4. Run `./mvnw test`.
 
 ### Add A New Column To `wohnungen`
@@ -865,7 +868,7 @@ pkill -f "tailwindcss.*--watch"
 2. Open **Settings → Languages & Frameworks → Style Sheets → Tailwind CSS**.
 3. Make sure the **Language Server** path is set to the bundled server or a globally installed `@tailwindcss/language-server`.
 4. Look at the **bottom status bar** in IntelliJ for the language services widget. Click it and restart the Tailwind CSS language server.
-5. Open a Thymeleaf HTML template and wait a few seconds for the server to initialize.
+5. Open a `.kte` template and wait a few seconds for the server to initialize.
 
 If it still does not work, the issue is likely on the JetBrains side. The `tailwindcss` npm package in `node_modules` is the standard detection signal. As a last resort, try **File → Invalidate Caches → Invalidate and Restart**.
 

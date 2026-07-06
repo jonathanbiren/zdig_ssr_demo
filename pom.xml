@@ -30,6 +30,7 @@
 	<properties>
 		<java.version>25</java.version>
 		<kotlin.version>2.4.0-RC2</kotlin.version>
+		<jte.version>3.2.4</jte.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -106,6 +107,17 @@
 			<artifactId>htmx-spring-boot</artifactId>
 			<version>5.1.0</version>
 		</dependency>
+		<!-- JTE (Java Template Engine) - type-safe template engine for Kotlin (.kte files) -->
+		<dependency>
+			<groupId>gg.jte</groupId>
+			<artifactId>jte-spring-boot-starter-4</artifactId>
+			<version>${jte.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>gg.jte</groupId>
+			<artifactId>jte-kotlin</artifactId>
+			<version>${jte.version}</version>
+		</dependency>
 		<!--        Webjars will be served as static resources and you can include them in your templates -->
 		<!--        using a specific path like <script src="/webjars/htmx.org/2.0.6/dist/htmx.min.js"></script>-->
 		<dependency>
@@ -119,14 +131,6 @@
 			<artifactId>alpinejs</artifactId>
 			<version>3.15.12</version>
 			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.thymeleaf.extras</groupId>
-			<artifactId>thymeleaf-extras-springsecurity6</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -184,6 +188,33 @@
 						<configuration>
 							<executable>${project.basedir}/bin/build-css.sh</executable>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!--
+				JTE template generation for production.
+				Generates .kt source files from .kte templates during the build.
+				The Kotlin compiler then compiles them alongside the application code,
+				so the template classes end up in the JAR automatically.
+				In development, templates are hot-reloaded instead
+				(see gg.jte.developmentMode in application.properties).
+				For production, set gg.jte.usePrecompiledTemplates=true.
+			-->
+			<plugin>
+				<groupId>gg.jte</groupId>
+				<artifactId>jte-maven-plugin</artifactId>
+				<version>${jte.version}</version>
+				<configuration>
+					<sourceDirectory>${project.basedir}/src/main/kte</sourceDirectory>
+					<contentType>Html</contentType>
+					<targetDirectory/>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

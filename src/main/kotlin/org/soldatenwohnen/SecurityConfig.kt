@@ -14,6 +14,7 @@ class SecurityConfig {
                 requests
                     .requestMatchers(
                         "/",
+                        "/jte-test",
                         "/wohnungen",
                         "/wohnungen/**",
                          "/kunden",

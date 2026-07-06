@@ -50,7 +50,7 @@
     --noise: 0;
 }
 
-@source "../templates/**/*.html";
+@source "../../kte/**/*.kte";
 @source "../../kotlin/**/*.kt";
 
 @theme {
