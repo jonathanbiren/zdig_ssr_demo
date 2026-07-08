@@ -17,7 +17,7 @@ class Controller() {
 	@GetMapping("/jte-test")
 	fun jteTest(model: Model): String {
 		model.addAttribute("name", "Soldaten Wohnen")
-		return "test"
+		return "pages/test.kte"
 	}
 
 	@HxRequest

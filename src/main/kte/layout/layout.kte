@@ -1,9 +1,10 @@
 @import gg.jte.Content
 @param title: String
 @param content: Content
+
 <!DOCTYPE html>
 <html lang="de">
-@template.head(title = title)
+@template.fragments.head(title = title)
 <div class="h-screen w-full flex flex-col overflow-hidden bg-secondary">
     <header class="shrink-0">
         <nav class="navbar bg-base-100 shadow-sm">
@@ -15,7 +16,7 @@
         ${content}
     </main>
 
-    <footer class="shrink-0">
+    <footer class="shrink-0" x-data="{test: ${title}}">
         <div class="footer sm:footer-horizontal bg-neutral text-neutral-content p-10">
             <nav>
                 ZDig BW

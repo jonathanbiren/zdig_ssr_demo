@@ -1,0 +1,7 @@
+@param name: String
+
+@template.layout.layout(title = "Test Page", content = @`
+	<section class="h-full flex flex-col gap-4 p-4 mx-auto w-full max-w-7xl mt-2">
+		<h2>This is just a test</h2>
+	</section>
+`)
