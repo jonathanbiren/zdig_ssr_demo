@@ -1,0 +1,41 @@
+@import org.soldatenwohnen.adapter.`in`.Kunde
+
+@param kundenListe: List<Kunde>
+
+@template.layout.layout(title = "SFA | Kunde", content = @`
+	<section
+			class="h-full flex flex-col gap-4 p-4 mx-auto w-full max-w-7xl mt-2"
+	>
+		<div class="flex flex-wrap items-center justify-between gap-4 bg-base-200 rounded-box p-4 shadow-sm">
+			<div class="flex items-center gap-3">
+				<span class="font-medium">Kundenanzahl</span>
+				<span class="badge badge-primary badge-lg">${kundenListe.size}</span>
+			</div>
+
+
+			<label class="form-control w-full max-w-xs">
+            <span class="label py-1">
+                Search
+            </span>
+				<!--            So hx-sync="this:replace" reads literally as: "sync against myself; when I issue a new request while one of-->
+				<!--            mine is still in flight, abort the in-flight one and replace it with the new one."-->
+				<input type="text"
+				       name="sucheingabe"
+				       placeholder="z. B. 123"
+				       class="input input-bordered w-full"
+				       hx-trigger="input changed delay:300ms"
+				       hx-get="/kunden"
+				       hx-target="#kundentabelleContainer"
+				       hx-swap="innerHTML"
+				       hx-sync="this:replace"
+				>
+			</label>
+		</div>
+
+
+		<div id="kundentabelleContainer"
+		     class="flex-1 min-h-0 overflow-auto rounded-box border border-base-300 bg-base-100 shadow-sm">
+			@template.pages.kunden.fragments.clientListWithDetailView(kundenListe = kundenListe)
+		</div>
+	</section>
+`)

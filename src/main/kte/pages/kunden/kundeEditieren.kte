@@ -1,0 +1,11 @@
+@import org.soldatenwohnen.adapter.`in`.Kunde
+
+@param kunde: Kunde
+
+@template.layout.layout(title = "Editieren | ${kunde.kurzname}", content = @`
+	<section
+			class="h-full flex flex-col gap-4 p-4 mx-auto w-full max-w-7xl mt-2"
+	>
+		<h1 class="text-xl text-white">Editieren von Kunde ${kunde.name}</h1>
+	</section>
+`)

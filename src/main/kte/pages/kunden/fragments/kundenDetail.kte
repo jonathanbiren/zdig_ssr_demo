@@ -1,0 +1,3 @@
+@param kundenDetail: String
+
+<span>Kunden Detail: ${kundenDetail}</span>
