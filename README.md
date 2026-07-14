@@ -422,8 +422,8 @@ Current migrations:
 
 | File | Purpose |
 |---|---|
-| `V1__create_wohnungen.sql` | Creates the `wohnungen` table and index |
-| `V2__seed_wohnungen.sql` | Inserts development apartment data |
+| `V1__create_kunden.sql` | Creates the `wohnungen` table and index |
+| `V2__seed_kunden.sql` | Inserts development apartment data |
 
 Spring Boot runs Flyway before accepting requests. If a migration has not been applied, Flyway applies it automatically.
 
@@ -536,8 +536,8 @@ soldaten-wohnen/
 |   |       |-- templates/              # Old Thymeleaf templates (pending migration to KTE)
 |   |       |   |-- sfa/index.html      # Reference for migration
 |   |       |-- db/migration/
-|   |           |-- V1__create_wohnungen.sql
-|   |           |-- V2__seed_wohnungen.sql
+|   |           |-- V1__create_kunden.sql
+|   |           |-- V2__seed_kunden.sql
 |   |-- kte/                            # JTE Kotlin templates
 |   |   |-- layout.kte                  # Shared layout (head, header, footer)
 |   |   |-- head.kte                    # <head> with CSS, HTMX, Alpine.js WebJars
