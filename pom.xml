@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.5</version>
+		<version>4.1.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>org</groupId>
@@ -29,7 +29,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<kotlin.version>2.4.0-RC2</kotlin.version>
+		<kotlin.version>2.4.10</kotlin.version>
 		<jte.version>3.2.4</jte.version>
 	</properties>
 	<dependencies>
@@ -136,6 +136,10 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-docker-compose</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 	</dependencies>
 

@@ -1,6 +1,5 @@
 package org.soldatenwohnen.core.katalog.domain.model
 
-import java.time.OffsetDateTime
 import java.util.UUID
 
 class Kunde(
@@ -10,5 +9,5 @@ class Kunde(
 	var zsNummer: Long,
 	var adresse: String,
 	var status: String,
-	var besondersSchuetzenswert: Boolean,
+	var istBesondersSchuetzenswert: Boolean,
 ) {}

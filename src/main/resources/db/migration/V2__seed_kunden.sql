@@ -1,4 +1,4 @@
-INSERT INTO kunden (id, kurzname, name, zsNummer, adresse, status, besondersSchuetzenswert)
+INSERT INTO kunden (id, kurzname, name, zs_nummer, adresse, status, besonders_schuetzenswert)
 VALUES ('0d4f5b72-6d5d-4a30-9c4d-1f1a0c2f1001', 'AI', 'Ankundigung Inc', 4582, '40219 Düsseldorf', 'Unterlagenführend',
         true),
        ('1a6e7c83-7e6e-4b41-ac5e-2f2b1d3e2002', 'BRAL', 'Bayer', 4480, '56077 Koblenz', 'Ausgeschieden', false),
