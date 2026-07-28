@@ -144,7 +144,8 @@ The event bridge runs both ways: HTMX fires `htmx:afterSwap` that Alpine can lis
 | Styling: utilities | Tailwind CSS v4 (via npm) | Source in `assets/styles.css`, output in `static/css/app.css` |
 | Styling: components | DaisyUI 5 (via npm) | Configured as a Tailwind plugin in `assets/styles.css` |
 | CSS build tool | `@tailwindcss/cli` (via npm) | Scripts in `package.json` |
-| Database access | Spring Data JDBC | `adapter/out/WohnungRepositoryAdapter.kt` |
+| Database access | jOOQ (type-safe SQL DSL) | `adapter/out/KundenRepository.kt`, `adapter/out/VerpflichtungRepository.kt` |
+| DB code generation | jOOQ codegen (Testcontainers + Flyway, runs in Maven build) | `pom.xml`, output in `target/generated-sources/jooq` |
 | Database | PostgreSQL | Docker Compose at `docker-compose.yml` |
 | Schema migrations | Flyway | `src/main/resources/db/migration` |
 | Build tool | Maven Wrapper | `./mvnw` |
@@ -227,7 +228,10 @@ You do **not** need to stop and restart `./bin/dev.sh` for normal template or co
 ./mvnw test
 ```
 
-Tests start the full Spring application context, so PostgreSQL must be running.
+Two infrastructure requirements:
+
+- **Every Maven build needs a running Docker daemon.** The jOOQ code generator starts a throwaway PostgreSQL container via Testcontainers during the build.
+- **Tests additionally need the dev database** (`docker compose up -d`), because they boot the full Spring application context.
 
 For a fast compile-only check:
 
@@ -410,9 +414,9 @@ Spring Boot reads these values from `src/main/resources/application.properties`.
 
 ### What Flyway Does
 
-Flyway owns the database schema. The `@Table("wohnungen")` annotation in `WohnungRepositoryAdapter.kt` does not create a table. It only tells Spring Data JDBC which table a Kotlin class maps to.
+Flyway owns the database schema. It is the **only** thing that creates or changes tables. jOOQ does not manage the schema at all — it works the other way around: at build time, the jOOQ code generator reads the migrated schema and generates typed Kotlin classes from it (see "How jOOQ Code Generation Works" below). Your Kotlin code then references tables and columns as generated, compiler-checked constants, so a schema change that breaks a query fails the build, not the runtime.
 
-The actual table is created by SQL migrations in:
+The actual tables are created by SQL migrations in:
 
 ```text
 src/main/resources/db/migration
@@ -422,10 +426,25 @@ Current migrations:
 
 | File | Purpose |
 |---|---|
-| `V1__create_kunden.sql` | Creates the `wohnungen` table and index |
-| `V2__seed_kunden.sql` | Inserts development apartment data |
+| `V1__create_kunden.sql` | Creates the `kunden` table |
+| `V2__seed_kunden.sql` | Inserts development customer data |
+| `V3__enable_trigrams.sql` | Enables the `pg_trgm` extension (fuzzy text search) |
+| `V4__create_verpflichtungen.sql` | Creates the `verpflichtungen` table and index |
+| `V5__seed_verpflichtungen.sql` | Inserts development liability data |
 
 Spring Boot runs Flyway before accepting requests. If a migration has not been applied, Flyway applies it automatically.
+
+### How jOOQ Code Generation Works
+
+Three Maven plugins run in the `generate-sources` phase of **every** build (declared in `pom.xml`, in order):
+
+1. **`gmavenplus-plugin`** starts a throwaway PostgreSQL container via Testcontainers. No manual container management is needed; the container is deleted when the build JVM exits.
+2. **`flyway-maven-plugin`** applies the real migrations from `src/main/resources/db/migration` to that throwaway database. The generated code therefore always matches the exact schema your migrations produce — never a drifting local database.
+3. **`jooq-codegen-maven`** reverse-engineers the migrated schema into typed Kotlin classes in `target/generated-sources/jooq` (package `org.soldatenwohnen.jooq`): table constants (`KUNDEN`, `VERPFLICHTUNGEN`), typed column fields, record classes (`KundenRecord`, `VerpflichtungenRecord`), and even database functions (`wordSimilarity(...)` from `pg_trgm`).
+
+The generated code is a build artifact — it lives in `target/`, is not committed, and is regenerated on every build. **Consequence: any Maven build requires a running Docker daemon.** The dev database (`docker compose up -d`) is only needed to run the app and the tests, not for code generation.
+
+The repositories in `adapter/out` are plain classes that use the auto-configured `DSLContext` (`spring-boot-starter-jooq`) together with these generated classes. SQL is written as Kotlin code; there are no annotations, no derived query methods, and no ORM session.
 
 ### Migration Naming
 
@@ -438,9 +457,9 @@ V{number}__{description}.sql
 Examples:
 
 ```text
-V3__add_balkon_to_wohnungen.sql
-V4__create_bewerbungen.sql
-V5__add_index_on_bewerbungen_status.sql
+V6__add_balkon_to_wohnungen.sql
+V7__create_bewerbungen.sql
+V8__add_index_on_bewerbungen_status.sql
 ```
 
 Use two underscores between the version and the description.
@@ -476,22 +495,19 @@ The goal is separation of concerns:
 | `application/service` | Application orchestration, transactions, and use case implementations |
 | `application/port/out` | Interfaces for infrastructure needed by the application |
 | `adapter/in` | Inbound adapters such as MVC page controllers and JSON API controllers |
-| `adapter/out` | Outbound adapters such as Spring Data JDBC persistence |
+| `adapter/out` | Outbound adapters such as jOOQ-based persistence |
 
 Request flow for the catalogue page:
 
 ```text
 Browser
--> KatalogPageController
--> WohnungenAuflistenUseCase
--> WohnungssucheService
--> WohnungRepository
--> WohnungRepositoryAdapter
--> WohnungJdbcRepository
+-> KundenController
+-> KundenRepository
+-> DSLContext (jOOQ, auto-configured by Spring Boot)
 -> PostgreSQL
 ```
 
-Dependency direction points inward. The domain model does not know about Spring MVC, JTE, JDBC, Flyway, or PostgreSQL.
+Dependency direction points inward. The domain model does not know about Spring MVC, JTE, jOOQ, Flyway, or PostgreSQL.
 
 ---
 
@@ -514,18 +530,17 @@ soldaten-wohnen/
 |   |   |       |-- SecurityConfig.kt
 |   |   |       |-- adapter/
 |   |   |       |   |-- in/
-|   |   |       |   |   |-- KatalogPageController.kt
-|   |   |       |   |   |-- WohnungenAuflistenController.kt
-|   |   |       |   |   |-- WohnungDetailAnzeigenController.kt
+|   |   |       |   |   |-- KundenController.kt
 |   |   |       |   |-- out/
-|   |   |       |       |-- WohnungRepositoryAdapter.kt
+|   |   |       |       |-- KundenRepository.kt          # jOOQ: queries, MULTISET aggregate load, trigram search
+|   |   |       |       |-- VerpflichtungRepository.kt   # jOOQ: simple CRUD + upsert
+|   |   |       |-- config/
+|   |   |       |   |-- Configuration.kt
 |   |   |       |-- core/
 |   |   |           |-- katalog/
-|   |   |               |-- domain/model/Wohnung.kt
-|   |   |               |-- application/port/in/WohnungenAuflistenUseCase.kt
-|   |   |               |-- application/port/in/WohnungDetailAnzeigenUseCase.kt
-|   |   |               |-- application/port/out/WohnungRepository.kt
-|   |   |               |-- application/service/WohnungssucheService.kt
+|   |   |               |-- domain/model/Kunde.kt
+|   |   |               |-- domain/model/Verpflichtung.kt
+|   |   |               |-- domain/model/KundeMitVerpflichtungen.kt
 |   |   |-- resources/
 |   |       |-- application.properties   # App config, datasource, security, JTE, DevTools
 |   |       |-- assets/
@@ -538,27 +553,31 @@ soldaten-wohnen/
 |   |       |-- db/migration/
 |   |           |-- V1__create_kunden.sql
 |   |           |-- V2__seed_kunden.sql
+|   |           |-- V3__enable_trigrams.sql
+|   |           |-- V4__create_verpflichtungen.sql
+|   |           |-- V5__seed_verpflichtungen.sql
 |   |-- kte/                            # JTE Kotlin templates
 |   |   |-- layout.kte                  # Shared layout (head, header, footer)
 |   |   |-- head.kte                    # <head> with CSS, HTMX, Alpine.js WebJars
 |   |   |-- test.kte                    # Test page
 |   |-- test/
 |       |-- kotlin/org/soldatenwohnen/SoldatenWohnenApplicationTests.kt
+|       |-- kotlin/org/soldatenwohnen/adapter/out/KundenRepositoryTest.kt
+|-- target/generated-sources/jooq/      # Generated jOOQ classes (build artifact, not committed)
 ```
 
 ### Important Files
 
 | File | Why it matters |
 |---|---|
-| `pom.xml` | Maven dependencies, Kotlin compiler, JTE plugin, exec plugin for CSS build |
+| `pom.xml` | Maven dependencies, Kotlin compiler, JTE plugin, jOOQ codegen pipeline, exec plugin for CSS build |
 | `package.json` | Tailwind CSS + DaisyUI versions and npm build scripts (`build`, `build-prod`, `watch`) |
-| `application.properties` | App name, datasource, Flyway, security, JTE, DevTools |
+| `application.properties` | App name, datasource, Flyway, jOOQ dialect, security, JTE, DevTools |
 | `SecurityConfig.kt` | Public page routes and protected API routes |
-| `Controller.kt` | JTE page routes and HTMX template routes |
-| `WohnungenAuflistenController.kt` | JSON API list endpoint |
-| `WohnungDetailAnzeigenController.kt` | JSON API detail endpoint |
-| `WohnungRepositoryAdapter.kt` | Spring Data JDBC row mapping and repository adapter |
-| `Wohnung.kt` | Domain model for apartments |
+| `KundenController.kt` | JTE page routes and HTMX fragment routes |
+| `KundenRepository.kt` / `VerpflichtungenRepository.kt` | jOOQ persistence adapters: type-safe SQL via `DSLContext`, no annotations |
+| `target/generated-sources/jooq/` | Generated jOOQ table/record/routine classes. Build artifact, never edited, not committed |
+| `Kunde.kt`, `Verpflichtung.kt`, `KundeMitVerpflichtungen.kt` | Domain model (pure Kotlin, no persistence annotations) |
 | `kte/*.kte` | JTE Kotlin templates (layout, head, pages) |
 | `assets/styles.css` | Tailwind v4 + DaisyUI 5 source file (plugin, `sowo` theme, custom layers) |
 | `static/css/app.css` | Generated CSS served by Spring Boot |
@@ -744,14 +763,14 @@ After any dependency change, run:
 3. Use Alpine for non-sensitive UI state only (toggles, tabs, dropdowns). For security-gated rendering, use JTE `@if` instead.
 4. Run `./mvnw test`.
 
-### Add A New Column To `wohnungen`
+### Add A New Column To `kunden`
 
-1. Create a new migration in `src/main/resources/db/migration`, for example `V3__add_balkon_to_wohnungen.sql`.
+1. Create a new migration in `src/main/resources/db/migration`, for example `V6__add_notiz_to_kunden.sql`.
 2. Add the column with SQL in that migration.
-3. Add the corresponding property to `WohnungRow`.
-4. Update `toDomain()` if the domain model needs the new data.
-5. Update templates or API response DTOs if the new data should be displayed.
-6. Start the app so Flyway applies the migration.
+3. Run `./mvnw -DskipTests compile`. The build migrates a throwaway database and regenerates the jOOQ classes — the new column appears as a typed field on `KUNDEN`.
+4. Use the new field in the repositories (`adapter/out`). If the change *breaks* existing queries (renamed/dropped column), the compiler now points at every affected line.
+5. Update `toDomain()` / presentation models / templates if the new data should be displayed.
+6. Start the app so Flyway applies the migration to the dev database.
 7. Run `./mvnw test`.
 
 ### Add A New Use Case
@@ -782,6 +801,12 @@ This is also run automatically during `./mvnw compile` and `./mvnw package`.
 ---
 
 ## Troubleshooting
+
+### Build Fails With A Docker Or Testcontainers Error
+
+The jOOQ code generator starts a throwaway PostgreSQL container on every build. If the Docker daemon is not running, the build fails in the `generate-sources` phase with an error like `Could not find a valid Docker environment`. Start Docker Desktop and rerun the build.
+
+If you want to see the generated classes, they are in `target/generated-sources/jooq` (regenerated on every build, never edited by hand, not committed to git).
 
 ### `Connection to localhost:5432 refused`
 

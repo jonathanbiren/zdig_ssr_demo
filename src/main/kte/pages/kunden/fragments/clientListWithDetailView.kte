@@ -18,11 +18,9 @@
 		<tbody>
 		@for(kunde in kundenListe)
 			<tr
-					x-data="{rowId: ${kunde.id}}"
 					class="row-hover cursor-pointer"
 					<%--:class="selectedId == rowId ? 'active' : ''"--%>
 					@click="slideOverOpen = true"
-
 					hx-trigger="click"
 					hx-get="/kunden/${kunde.id}/detail"
 					hx-target="#side-panel-content"

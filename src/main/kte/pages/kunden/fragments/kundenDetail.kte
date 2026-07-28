@@ -1,3 +1,29 @@
-@param kundenDetail: String
+@import org.soldatenwohnen.adapter.`in`.KundePresentationModel
+@import org.soldatenwohnen.adapter.`in`.VerpflichtungPresentationModel
 
-<span>Kunden Detail: ${kundenDetail}</span>
+@param kunde: KundePresentationModel
+@param verpflichtungen: List<VerpflichtungPresentationModel>
+
+<div class="p-4 flex flex-col gap-4">
+	<div>
+		<h3 class="font-semibold text-lg">${kunde.name}</h3>
+		<p class="text-sm opacity-70">${kunde.kurzname} &middot; ZS-NR ${kunde.zsNummer}</p>
+		<p class="text-sm opacity-70">${kunde.adresse} &middot; ${kunde.status}</p>
+		@if(kunde.istBesondersSchuetzenswert)
+			<span class="badge badge-warning badge-sm mt-1">Besonders sch&uuml;tzenswert</span>
+		@endif
+	</div>
+
+	<div>
+		<h4 class="font-medium">Verpflichtungen</h4>
+		@if(verpflichtungen.isEmpty())
+			<p class="text-sm opacity-70">Keine Verpflichtungen vorhanden.</p>
+		@else
+			<ul class="list-disc pl-5">
+				@for(v in verpflichtungen)
+					<li class="text-sm">${v.bezeichnung} &ndash; ${v.betrag}</li>
+				@endfor
+			</ul>
+		@endif
+	</div>
+</div>

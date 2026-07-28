@@ -52,7 +52,12 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jdbc</artifactId>
+			<artifactId>spring-boot-starter-jooq</artifactId>
+		</dependency>
+		<!-- Kotlin extensions for jOOQ (e.g. MULTISET collectors, operator overloads) -->
+		<dependency>
+			<groupId>org.jooq</groupId>
+			<artifactId>jooq-kotlin</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
@@ -168,6 +173,140 @@
 						<groupId>org.jetbrains.kotlin</groupId>
 						<artifactId>kotlin-maven-allopen</artifactId>
 						<version>${kotlin.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<!--
+				jOOQ code generation pipeline. Runs in the generate-sources phase on every build.
+				Three plugins execute in declaration order:
+				  1. gmavenplus-plugin starts a throwaway PostgreSQL container via Testcontainers
+				     and stores its JDBC URL in the project property codegen.db.url.
+				  2. flyway-maven-plugin applies the real migrations from
+				     src/main/resources/db/migration to that throwaway database, so the generated
+				     code always matches the exact production schema.
+				  3. jooq-codegen-maven reverse-engineers the migrated schema into typed Kotlin
+				     classes under target/generated-sources/jooq.
+				Requires a running Docker daemon. No manual database setup is needed.
+			-->
+			<plugin>
+				<groupId>org.codehaus.gmavenplus</groupId>
+				<artifactId>gmavenplus-plugin</artifactId>
+				<version>5.1.0</version>
+				<executions>
+					<execution>
+						<id>start-codegen-database</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>execute</goal>
+						</goals>
+						<configuration>
+							<scripts>
+								<script><![CDATA[
+									import org.testcontainers.containers.PostgreSQLContainer
+									import org.testcontainers.utility.DockerImageName
+
+									def db = new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"))
+										.withDatabaseName("jooq_codegen")
+										.withUsername("jooq")
+										.withPassword("jooq")
+									db.start()
+
+									// Hand the container's JDBC URL to the plugins below.
+									// The container is removed automatically when the Maven JVM exits.
+									project.properties.setProperty("codegen.db.url", db.getJdbcUrl())
+									project.properties.setProperty("codegen.db.username", "jooq")
+									project.properties.setProperty("codegen.db.password", "jooq")
+									log.info("jOOQ codegen database started at " + db.getJdbcUrl())
+								]]></script>
+							</scripts>
+						</configuration>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.groovy</groupId>
+						<artifactId>groovy</artifactId>
+						<version>4.0.32</version>
+					</dependency>
+					<dependency>
+						<groupId>org.testcontainers</groupId>
+						<artifactId>testcontainers-postgresql</artifactId>
+						<version>${testcontainers.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>${flyway.version}</version>
+				<executions>
+					<execution>
+						<id>migrate-codegen-database</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>migrate</goal>
+						</goals>
+						<configuration>
+							<url>${codegen.db.url}</url>
+							<user>${codegen.db.username}</user>
+							<password>${codegen.db.password}</password>
+							<locations>
+								<location>filesystem:${project.basedir}/src/main/resources/db/migration</location>
+							</locations>
+						</configuration>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>${postgresql.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.flywaydb</groupId>
+						<artifactId>flyway-database-postgresql</artifactId>
+						<version>${flyway.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>org.jooq</groupId>
+				<artifactId>jooq-codegen-maven</artifactId>
+				<version>${jooq.version}</version>
+				<executions>
+					<execution>
+						<id>generate-jooq-sources</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<jdbc>
+								<driver>org.postgresql.Driver</driver>
+								<url>${codegen.db.url}</url>
+								<user>${codegen.db.username}</user>
+								<password>${codegen.db.password}</password>
+							</jdbc>
+							<generator>
+								<name>org.jooq.codegen.KotlinGenerator</name>
+								<database>
+									<name>org.jooq.meta.postgres.PostgresDatabase</name>
+									<inputSchema>public</inputSchema>
+									<excludes>flyway_schema_history</excludes>
+								</database>
+								<target>
+									<packageName>org.soldatenwohnen.jooq</packageName>
+									<directory>${project.build.directory}/generated-sources/jooq</directory>
+								</target>
+							</generator>
+						</configuration>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>${postgresql.version}</version>
 					</dependency>
 				</dependencies>
 			</plugin>
