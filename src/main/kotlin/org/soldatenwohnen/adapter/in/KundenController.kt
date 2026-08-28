@@ -2,7 +2,6 @@ package org.soldatenwohnen.adapter.`in`
 
 
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
-import org.soldatenwohnen.adapter.out.KundenRepository
 import org.soldatenwohnen.core.katalog.application.port.out.IKundenRepository
 import org.soldatenwohnen.core.katalog.domain.model.Kunde
 import org.soldatenwohnen.core.katalog.domain.model.Verpflichtung
@@ -18,7 +17,7 @@ import java.util.Locale
 import java.util.UUID
 
 //Object for reducing the visual noise of Spring Boot not being able to resolve the JTE templates
-object Views {
+private object Views {
 	//pages
 	const val INDEX = "pages/kunden/index"
 	const val KUNDEN_EDIT = "pages/kunden/kundeEditieren"

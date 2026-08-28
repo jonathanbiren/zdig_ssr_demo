@@ -1,14 +1,12 @@
 package org.soldatenwohnen
 
-import org.soldatenwohnen.config.ClientSearchProperties
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 //This is the entry point into the application. This annotation is a combination of @Configuration, @ComponentScan
-// and @EnableAutoConfiguration.
+// and @EnableAutoConfiguration. Spring will only scan for components, configurations, and services in the package which
+// contains the class annotated with @SpringBootApplication, as well as inside the subpackages of that package.
 @SpringBootApplication
 @ConfigurationPropertiesScan
 class SoldatenWohnenApplication
