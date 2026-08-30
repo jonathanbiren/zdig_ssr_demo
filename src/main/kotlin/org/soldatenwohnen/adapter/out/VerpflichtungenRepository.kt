@@ -2,57 +2,72 @@ package org.soldatenwohnen.adapter.out
 
 import org.jooq.DSLContext
 import org.soldatenwohnen.core.katalog.domain.model.Verpflichtung
+import org.soldatenwohnen.jooq.tables.daos.VerpflichtungenDao
+import org.soldatenwohnen.jooq.tables.pojos.Verpflichtungen
 import org.soldatenwohnen.jooq.tables.records.VerpflichtungenRecord
 import org.soldatenwohnen.jooq.tables.references.VERPFLICHTUNGEN
-import org.springframework.stereotype.Component
-import java.util.UUID
+import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
+import java.util.*
 
-@Component
+/**
+ * Repository (DAO) for single-table CRUD and DSLContext for everything that needs to be hand-rolled.
+ * Uses the generated [VerpflichtungenDao] for by-id CRUD and hand-written DSL queries
+ * where the fixed DAO API is not expressive enough.
+ */
+@Transactional
+@Repository
 class VerpflichtungRepository(
 	private val dsl: DSLContext,
+	private val verpflichtungenDao: VerpflichtungenDao,
 ) {
 
+	// The DAO fetcher (fetchByKundeId) cannot ORDER BY, but chronological order is part
+	// of this query's contract — so it stays a DSL query.
 	fun findByKundeId(kundeId: UUID): List<Verpflichtung> =
 		dsl.selectFrom(VERPFLICHTUNGEN)
 			.where(VERPFLICHTUNGEN.KUNDE_ID.eq(kundeId))
 			.orderBy(VERPFLICHTUNGEN.ERSTELLT_AM)
-			.fetch()
-			.map { it.toDomain() }
+			.fetch().into(Verpflichtung::class.java)
 
+	// You should investigate whether it is a better practice to directly return the type of the DAO from
+	// the domain layer or to map the DAO type to the domain layer first. Intuitively, given that we don't want
+	// to have dependencies flowing from domain -> data access, I would say mapping it is the better choice.
 	fun findById(id: UUID): Verpflichtung? =
-		dsl.selectFrom(VERPFLICHTUNGEN)
-			.where(VERPFLICHTUNGEN.ID.eq(id))
-			.fetchOne()
-			?.toDomain()
+		verpflichtungenDao.findById(id)?.toDomain()
 
-	/**
-	 * Upsert: INSERT ... ON CONFLICT (id) DO UPDATE. There is no dirty checking and no
-	 * cascade magic in jOOQ — the SQL you read here is the SQL that runs, wrapped in
-	 * whatever transaction the caller has opened (Spring's @Transactional works as usual).
-	 */
+	// The DAO API only offers separate insert()/update(); an upsert (INSERT .. ON CONFLICT
+	// .. DO UPDATE) is beyond it, so this stays a DSL query as well.
 	fun save(verpflichtung: Verpflichtung): Verpflichtung {
-		dsl.insertInto(VERPFLICHTUNGEN)
-			.set(VERPFLICHTUNGEN.ID, verpflichtung.id)
-			.set(VERPFLICHTUNGEN.KUNDE_ID, verpflichtung.kundeId)
-			.set(VERPFLICHTUNGEN.BEZEICHNUNG, verpflichtung.bezeichnung)
-			.set(VERPFLICHTUNGEN.BETRAG_CENT, verpflichtung.betragCent)
-			.set(VERPFLICHTUNGEN.ERSTELLT_AM, verpflichtung.erstelltAm)
-			.onConflict(VERPFLICHTUNGEN.ID)
-			.doUpdate()
-			.set(VERPFLICHTUNGEN.BEZEICHNUNG, verpflichtung.bezeichnung)
-			.set(VERPFLICHTUNGEN.BETRAG_CENT, verpflichtung.betragCent)
-			.execute()
+		verpflichtungenDao.insert(verpflichtung.toDao())
 		return verpflichtung
 	}
 
 	fun deleteById(id: UUID) {
-		dsl.deleteFrom(VERPFLICHTUNGEN)
-			.where(VERPFLICHTUNGEN.ID.eq(id))
-			.execute()
+		verpflichtungenDao.deleteById(id)
 	}
 }
 
-// See KundenRecord.toDomain for why the non-null assertions are safe.
+// See KundenRepository for why the non-null assertions are safe, and why there is one
+// mapper per generated type (POJO for the DAO, Record for DSL queries).
+
+fun Verpflichtungen.toDomain(): Verpflichtung = Verpflichtung(
+	id = id!!,
+	kundeId = kundeId!!,
+	bezeichnung = bezeichnung!!,
+	betragCent = betragCent!!,
+	erstelltAm = erstelltAm!!
+)
+
+fun Verpflichtung.toDao() = Verpflichtungen(
+	id = this.id,
+	kundeId = this.kundeId,
+	bezeichnung = this.bezeichnung,
+	betragCent = this.betragCent,
+	erstelltAm = this.erstelltAm
+)
+
+
 fun VerpflichtungenRecord.toDomain(): Verpflichtung = Verpflichtung(
 	id = id!!,
 	kundeId = kundeId!!,

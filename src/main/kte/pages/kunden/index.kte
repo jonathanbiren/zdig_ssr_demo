@@ -1,5 +1,4 @@
 @import org.soldatenwohnen.adapter.`in`.KundePresentationModel
-
 @param kundenListe: List<KundePresentationModel>
 
 @template.layout.layout(title = "SFA | Kunde", content = @`

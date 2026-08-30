@@ -134,7 +134,7 @@
 		<dependency>
 			<groupId>org.webjars.npm</groupId>
 			<artifactId>alpinejs</artifactId>
-			<version>3.15.12</version>
+			<version>3.16.3</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
@@ -292,6 +292,15 @@
 									<inputSchema>public</inputSchema>
 									<excludes>flyway_schema_history</excludes>
 								</database>
+								<!--
+									DAO generation. Must live inside <generate> (directly under
+									<generator> it is silently ignored). DAOs trade in POJOs, so
+									<pojos> must be enabled as well.
+								-->
+								<generate>
+									<pojos>true</pojos>
+									<daos>true</daos>
+								</generate>
 								<target>
 									<packageName>org.soldatenwohnen.jooq</packageName>
 									<directory>${project.build.directory}/generated-sources/jooq

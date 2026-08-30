@@ -12,5 +12,5 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 class SoldatenWohnenApplication
 
 fun main(args: Array<String>) {
-    SpringApplication.run(SoldatenWohnenApplication::class.java, *args)
+	SpringApplication.run(SoldatenWohnenApplication::class.java, *args)
 }
