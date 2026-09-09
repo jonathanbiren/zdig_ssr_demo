@@ -20,9 +20,9 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.*
 
 /**
- * Plain single-table CRUD goes through the generated [org.soldatenwohnen.jooq.tables.daos.KundenRepository]. Anything the fixed
+ * Plain single-table CRUD goes through the generated [org.soldatenwohnen.jooq.tables.daos.KundenDao]. Anything the fixed
  * DAO API cannot express (joins, MULTISET aggregation, the trigram search) stays a
- * hand-written DSL query — that split is the intended jOOQ usage, not a workaround.
+ * handwritten DSL query — that split is the intended jOOQ usage, not a workaround.
  *
  * DAO and DSL calls share Spring Boot's jOOQ Configuration, so both participate in
  * this class's transaction.
@@ -38,21 +38,19 @@ class KundenRepository(
 	private val clientSearchProperties: ClientSearchProperties,
 ) : IKundenRepository {
 
+	//region DAO Methods
 	override fun getAllClients(): List<Kunde> =
-		kundenDao.findAll().map { it.toDomain() }
+		kundenDao.findAll().map { kundeDao -> kundeDao.toDomain() }
 
 	override fun getClient(id: UUID): Kunde? =
 		kundenDao.findById(id)?.toDomain()
 
-	override fun deleteClient(id: UUID) {
-		// Children must be deleted first: verpflichtungen.kunde_id references kunden.id,
-		// so deleting the Kunde while Verpflichtungen still exist violates the FK.
-		dsl.deleteFrom(VERPFLICHTUNGEN)
-			.where(VERPFLICHTUNGEN.KUNDE_ID.eq(id))
-			.execute()
-		kundenDao.deleteById(id)
-	}
+	//* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
+	//* ON DELETE CASCADE.
+	override fun deleteClient(id: UUID) = kundenDao.deleteById(id)
+	//endregion
 
+	//region DSL methods
 	/**
 	 * Loads a whole aggregate — one Kunde plus all of its Verpflichtungen — in a single
 	 * round trip. MULTISET nests the child rows as a typed collection; on PostgreSQL jOOQ
@@ -82,6 +80,16 @@ class KundenRepository(
 			}
 	}
 
+	// The text the trigram search runs against: kurzname, name, zs_nummer, adresse, status
+	// concatenated with spaces, exactly like the previous hand-written @Query did with concat_ws.
+	private val KUNDEN_SUCHTEXT: Field<String?> = DSL.concat(
+		KUNDEN.KURZNAME, DSL.inline(" "),
+		KUNDEN.NAME, DSL.inline(" "),
+		KUNDEN.ZS_NUMMER.cast(String::class.java), DSL.inline(" "),
+		KUNDEN.ADRESSE, DSL.inline(" "),
+		KUNDEN.STATUS
+	)
+
 	// Custom Query using Postgres specific word_similarity function
 	override fun getAllClientsFittingSearchterm(searchTerm: String): List<Kunde> {
 		// wordSimilarity is the pg_trgm function word_similarity(), reverse-engineered
@@ -92,20 +100,13 @@ class KundenRepository(
 			.orderBy(similarity.desc())
 			.limit(clientSearchProperties.maxAmountOfSearchResults)
 			.fetch()
-			.map { it.toDomain() }
+			.map { kundenRecord -> kundenRecord.toDomain() }
 	}
+	//endregion
 }
 
-// The text the trigram search runs against: kurzname, name, zs_nummer, adresse, status
-// concatenated with spaces, exactly like the previous hand-written @Query did with concat_ws.
-private val KUNDEN_SUCHTEXT: Field<String?> = DSL.concat(
-	KUNDEN.KURZNAME, DSL.inline(" "),
-	KUNDEN.NAME, DSL.inline(" "),
-	KUNDEN.ZS_NUMMER.cast(String::class.java), DSL.inline(" "),
-	KUNDEN.ADRESSE, DSL.inline(" "),
-	KUNDEN.STATUS
-)
 
+//region Mappers
 // jOOQ's KotlinGenerator types every column as nullable, because any SQL expression can in
 // principle yield NULL. All columns of kunden and verpflichtungen are declared NOT NULL in
 // the schema (see src/main/resources/db/migration), so these non-null assertions are backed
@@ -130,3 +131,4 @@ fun KundenRecord.toDomain(): Kunde = Kunde(
 	status = status!!,
 	istBesondersSchuetzenswert = besondersSchuetzenswert!!
 )
+//endregion

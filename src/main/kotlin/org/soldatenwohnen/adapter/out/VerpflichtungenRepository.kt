@@ -21,15 +21,7 @@ class VerpflichtungRepository(
 	private val dsl: DSLContext,
 	private val verpflichtungenDao: VerpflichtungenDao,
 ) {
-
-	// The DAO fetcher (fetchByKundeId) cannot ORDER BY, but chronological order is part
-	// of this query's contract — so it stays a DSL query.
-	fun findByKundeId(kundeId: UUID): List<Verpflichtung> =
-		dsl.selectFrom(VERPFLICHTUNGEN)
-			.where(VERPFLICHTUNGEN.KUNDE_ID.eq(kundeId))
-			.orderBy(VERPFLICHTUNGEN.ERSTELLT_AM)
-			.fetch().into(Verpflichtung::class.java)
-
+	// region DAO methods
 	// You should investigate whether it is a better practice to directly return the type of the DAO from
 	// the domain layer or to map the DAO type to the domain layer first. Intuitively, given that we don't want
 	// to have dependencies flowing from domain -> data access, I would say mapping it is the better choice.
@@ -46,18 +38,27 @@ class VerpflichtungRepository(
 	fun deleteById(id: UUID) {
 		verpflichtungenDao.deleteById(id)
 	}
+	//endregion
+
+	//region DSL Methods
+	// The DAO fetcher (fetchByKundeId) cannot ORDER BY, but chronological order is part
+	// of this query's contract — so it stays a DSL query.
+	// Furthermore we have very basic (essentially 1 to 1 mapping) from 'VerpflichtungenRecord' (generated jOOQ type)
+	// into 'Verpflichtung' (domain type), which is why we use '.into()'. For more complex mapping, you will need
+	// to write an explicit mapper yourself.
+	fun findByKundeId(kundeId: UUID): List<Verpflichtung> =
+		dsl.selectFrom(VERPFLICHTUNGEN)
+			.where(VERPFLICHTUNGEN.KUNDE_ID.eq(kundeId))
+			.orderBy(VERPFLICHTUNGEN.ERSTELLT_AM)
+			.fetch().into(Verpflichtung::class.java)
+	//endregion
+
+
 }
 
+//region Mappers
 // See KundenRepository for why the non-null assertions are safe, and why there is one
 // mapper per generated type (POJO for the DAO, Record for DSL queries).
-
-fun Verpflichtungen.toDomain(): Verpflichtung = Verpflichtung(
-	id = id!!,
-	kundeId = kundeId!!,
-	bezeichnung = bezeichnung!!,
-	betragCent = betragCent!!,
-	erstelltAm = erstelltAm!!
-)
 
 fun Verpflichtung.toDao() = Verpflichtungen(
 	id = this.id,
@@ -67,6 +68,13 @@ fun Verpflichtung.toDao() = Verpflichtungen(
 	erstelltAm = this.erstelltAm
 )
 
+fun Verpflichtungen.toDomain(): Verpflichtung = Verpflichtung(
+	id = id!!,
+	kundeId = kundeId!!,
+	bezeichnung = bezeichnung!!,
+	betragCent = betragCent!!,
+	erstelltAm = erstelltAm!!
+)
 
 fun VerpflichtungenRecord.toDomain(): Verpflichtung = Verpflichtung(
 	id = id!!,
@@ -75,3 +83,4 @@ fun VerpflichtungenRecord.toDomain(): Verpflichtung = Verpflichtung(
 	betragCent = betragCent!!,
 	erstelltAm = erstelltAm!!
 )
+//endregion

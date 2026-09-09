@@ -33,6 +33,7 @@ class KundenController(
 	val kundenRepository: IKundenRepository,
 ) {
 
+	//region Full Page Endpoints
 	@GetMapping("/")
 	fun kundenMainPage(model: Model): String {
 		val listeAllerKunden: List<KundePresentationModel> =
@@ -50,7 +51,9 @@ class KundenController(
 		model.addAttribute("kunde", kunde)
 		return Views.KUNDEN_EDIT
 	}
+	//endregion
 
+	//region HTMX endpoints
 	@HxRequest
 	@DeleteMapping("/kunden/{id}/delete")
 	@ResponseBody
@@ -93,8 +96,10 @@ class KundenController(
 		)
 		return Views.KUNDEN_DETAILS
 	}
+	//endregion
 }
 
+//region Presentation Models
 // This only exists to showcase that you would not directly pass the domain entity to the view, but instead convert
 // it all to Strings first, so that the presentation layer has no problem rendering the view
 data class KundePresentationModel(
@@ -107,7 +112,16 @@ data class KundePresentationModel(
 	val istBesondersSchuetzenswert: Boolean
 )
 
+// Amounts reach the view as preformatted Strings, like everything else: the template
+// never does arithmetic, the presentation layer converts cents to euros.
+data class VerpflichtungPresentationModel(
+	val bezeichnung: String,
+	val betrag: String
+)
+//endregion
 
+
+//region Mappers
 private fun Kunde.toPresentationModel(): KundePresentationModel = KundePresentationModel(
 	id = this.id.toString(),
 	kurzname = this.kurzname,
@@ -118,12 +132,6 @@ private fun Kunde.toPresentationModel(): KundePresentationModel = KundePresentat
 	istBesondersSchuetzenswert = this.istBesondersSchuetzenswert
 )
 
-// Amounts reach the view as preformatted Strings, like everything else: the template
-// never does arithmetic, the presentation layer converts cents to euros.
-data class VerpflichtungPresentationModel(
-	val bezeichnung: String,
-	val betrag: String
-)
 
 private fun Verpflichtung.toPresentationModel(): VerpflichtungPresentationModel =
 	VerpflichtungPresentationModel(
@@ -131,4 +139,5 @@ private fun Verpflichtung.toPresentationModel(): VerpflichtungPresentationModel 
 		betrag = NumberFormat.getCurrencyInstance(Locale.GERMANY)
 			.format(this.betragCent.toBigDecimal().movePointLeft(2))
 	)
+//endregion
 
