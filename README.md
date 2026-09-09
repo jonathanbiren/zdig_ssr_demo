@@ -4,7 +4,7 @@ The backend application for Soldaten Wohnen. It serves both the backend API and 
 
 There is no separate JavaScript frontend project. Pages are rendered with **JTE**, small interactive updates use **HTMX**, client-side interactivity uses **Alpine.js**, styling is generated with **Tailwind CSS v4** and **DaisyUI 5**, and data is stored in **PostgreSQL**.
 
-**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or an SPA framework like React or Vue. Two small JavaScript libraries do run in the browser — **HTMX** and **Alpine.js** — but they are loaded as minified files from WebJars, not built or bundled from source. The `package.json` exists for two reasons: **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in JTE templates**, and **DaisyUI 5** is installed as an npm package and used as a Tailwind CSS plugin. No Node.js code runs in the browser.
+**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or an SPA framework like React or Vue. Two small JavaScript libraries do run in the browser — **HTMX** and **Alpine.js** — but they are loaded as minified files from WebJars, not built or bundled from source. The `package.json` exists for three reasons: **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in JTE templates**, **DaisyUI 5** is installed as an npm package and used as a Tailwind CSS plugin, and **the Tailwind class sorter** (`scripts/sort-tailwind-classes.mjs`) runs via Node.js. No Node.js code runs in the browser.
 
 ## Contents
 
@@ -13,14 +13,15 @@ There is no separate JavaScript frontend project. Pages are rendered with **JTE*
 3. [One-Time Setup](#one-time-setup)
 4. [Daily Development Workflow](#daily-development-workflow)
 5. [How The CSS Build Works](#how-the-css-build-works)
-6. [Application Routes](#application-routes)
-7. [Database And Flyway](#database-and-flyway)
-8. [Architecture](#architecture)
-9. [Project Structure](#project-structure)
-10. [Why npm Is Used For Tailwind CSS](#why-npm-is-used-for-tailwind-css)
-11. [Updating Dependencies](#updating-dependencies)
-12. [Common Tasks](#common-tasks)
-13. [Troubleshooting](#troubleshooting)
+6. [Sorting Tailwind Classes In Templates](#sorting-tailwind-classes-in-templates)
+7. [Application Routes](#application-routes)
+8. [Database And Flyway](#database-and-flyway)
+9. [Architecture](#architecture)
+10. [Project Structure](#project-structure)
+11. [Why npm Is Used For Tailwind CSS](#why-npm-is-used-for-tailwind-css)
+12. [Updating Dependencies](#updating-dependencies)
+13. [Common Tasks](#common-tasks)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -314,19 +315,22 @@ DaisyUI component classes (`.btn`, `.card`, `.badge`, etc.) are only emitted int
 
 ### npm Scripts
 
-The `package.json` defines three scripts:
+The `package.json` defines these scripts:
 
 | Script | Command | When to use |
 |---|---|---|
 | `build` | `tailwindcss -i ... -o ...` | Development build without minification |
 | `build-prod` | `tailwindcss -i ... -o ... --minify` | Production build. Used by Maven and `build-css.sh`. |
 | `watch` | `tailwindcss -i ... -o ... --watch` | Development. Used by `dev.sh`. Rebuilds on every file change. |
+| `sort-classes` | `node scripts/sort-tailwind-classes.mjs` | Sorts Tailwind classes in all KTE templates (see [Sorting Tailwind Classes In Templates](#sorting-tailwind-classes-in-templates)) |
+| `sort-classes:check` | `node scripts/sort-tailwind-classes.mjs --check` | Reports unsorted classes without modifying files; exits 1 if any are found |
 
 You can run these directly if you prefer:
 
 ```bash
 npm run build-prod
 npm run watch
+npm run sort-classes
 ```
 
 ### Build Scripts
@@ -343,6 +347,55 @@ Nothing bad. Run `./bin/build-css.sh` and it will be recreated. If you build the
 ### What Happens If You Delete `node_modules`
 
 Run `npm install` again. Both `build-css.sh` and `dev.sh` will automatically run `npm install` for you if `node_modules` is missing, but doing it manually during one-time setup avoids the delay during your first build.
+
+---
+
+## Sorting Tailwind Classes In Templates
+
+### What It Is
+
+`class="table table-lg table-pin-rows"` is easier to read and review when the classes follow the **official Tailwind ordering** (layout → sizing → spacing → colors → variants). The project has a small Node.js script that reorders classes in all KTE templates into that canonical order:
+
+```bash
+npm run sort-classes
+```
+
+Run it whenever you like — before committing, after a big editing session, whenever. It is **idempotent**: if everything is already sorted, it changes nothing and reports `0 class attribute(s) sorted`.
+
+To check without modifying files (useful in CI or as a pre-commit check):
+
+```bash
+npm run sort-classes:check
+```
+
+This exits with code 1 and lists the offending files if any class attribute is unsorted.
+
+### What It Does And Does Not Touch
+
+- **Sorts:** static `class="..."` attributes in `src/main/kte/**/*.kte`.
+- **Skips:** class values containing `${...}` (template interpolation) or `@` (JTE directives) — dynamic class strings are never reordered.
+- **Never touches:** indentation, quotes, line wrapping, or anything outside `class="..."` values. It is not a formatter.
+
+### How It Works (And Why It Exists)
+
+The sorting logic is **not** custom — it comes from `prettier-plugin-tailwindcss`, the official Tailwind Labs ordering engine, resolved against the project's real stylesheet (`assets/styles.css`), so DaisyUI component classes and the `sowo` theme tokens sort correctly too.
+
+The script (`scripts/sort-tailwind-classes.mjs`) is only plumbing around that engine. It exists because the usual tools cannot handle this project:
+
+- **Prettier + `prettier-plugin-tailwindcss`** is the standard way to sort classes, but Prettier has no parser for JTE/Kotlin templates (`.kte`), so it cannot process them.
+- **IDE plugins** (e.g. Trier) target HTML/JSX/Vue/Blade/Twig, not KTE, and their bundled sorter runtimes fail on this project's Tailwind v4 CSS-first config (no `tailwind.config.js`, DaisyUI `@plugin` blocks).
+
+The Tailwind team ships a standalone sorter API (`prettier-plugin-tailwindcss/sorter`) for exactly this situation. The script walks the KTE files, finds `class="..."` attributes with a regex, hands each value to the official sorter, and writes the file back. If Prettier or an IDE plugin ever gains KTE support, the script can be deleted and replaced by that tool — the ordering would be identical.
+
+### When To Run It
+
+- **Manually, whenever:** `npm run sort-classes`. There is no watcher or automatic trigger.
+- **Before committing:** keeps diffs free of class-order noise.
+- **In CI (optional):** `npm run sort-classes:check` fails the build if templates contain unsorted classes.
+
+### If The Script Breaks After A Tailwind Update
+
+The sorter compiles `assets/styles.css` internally. If a Tailwind or DaisyUI upgrade changes the CSS syntax, the script may fail with an error mentioning the stylesheet. Fix `styles.css` first (the same error would break the CSS build), then rerun. If the `prettier-plugin-tailwindcss` package itself is outdated, update it with `npm update prettier-plugin-tailwindcss`.
 
 ---
 
@@ -521,6 +574,8 @@ soldaten-wohnen/
 |-- bin/
 |   |-- build-css.sh                    # One-off CSS build (used by Maven and manual runs)
 |   |-- dev.sh                          # Development: runs Tailwind watcher + Spring Boot
+|-- scripts/
+|   |-- sort-tailwind-classes.mjs       # Sorts Tailwind classes in KTE templates (official ordering)
 |-- node_modules/                        # Installed npm packages (ignored by git)
 |-- src/
 |   |-- main/
@@ -571,7 +626,8 @@ soldaten-wohnen/
 | File | Why it matters |
 |---|---|
 | `pom.xml` | Maven dependencies, Kotlin compiler, JTE plugin, jOOQ codegen pipeline, exec plugin for CSS build |
-| `package.json` | Tailwind CSS + DaisyUI versions and npm build scripts (`build`, `build-prod`, `watch`) |
+| `package.json` | Tailwind CSS + DaisyUI versions and npm build scripts (`build`, `build-prod`, `watch`, `sort-classes`) |
+| `scripts/sort-tailwind-classes.mjs` | Sorts Tailwind classes in KTE templates using the official ordering; run via `npm run sort-classes` |
 | `application.properties` | App name, datasource, Flyway, jOOQ dialect, security, JTE, DevTools |
 | `SecurityConfig.kt` | Public page routes and protected API routes |
 | `KundenController.kt` | JTE page routes and HTMX fragment routes |
@@ -655,6 +711,12 @@ Then rebuild the CSS and verify the application still looks correct:
 ./bin/build-css.sh
 ```
 
+Also verify the class sorter still works (it compiles `styles.css` internally):
+
+```bash
+npm run sort-classes:check
+```
+
 If everything is fine, commit the updated `app.css` and the updated `package.json`. `node_modules` is never committed.
 
 To see exactly what changed, check the Tailwind releases page:
@@ -675,6 +737,7 @@ Then rebuild the CSS and verify the application still looks correct:
 
 ```bash
 ./bin/build-css.sh
+npm run sort-classes:check
 ```
 
 Check the DaisyUI changelog for breaking changes:
@@ -798,6 +861,14 @@ npm run build-prod
 
 This is also run automatically during `./mvnw compile` and `./mvnw package`.
 
+### Sort Tailwind Classes In All Templates
+
+```bash
+npm run sort-classes
+```
+
+Reorders `class="..."` attributes in every `.kte` template to the official Tailwind ordering. Safe to run at any time; it only reorders classes and skips dynamic values. See [Sorting Tailwind Classes In Templates](#sorting-tailwind-classes-in-templates) for details.
+
 ---
 
 ## Troubleshooting
@@ -886,6 +957,12 @@ pgrep -f "tailwindcss.*--watch"
 # Kill it
 pkill -f "tailwindcss.*--watch"
 ```
+
+### `npm run sort-classes` Fails With A Stylesheet Or Module Error
+
+1. **Stylesheet error:** The sorter compiles `assets/styles.css` internally. If it reports a CSS error, the CSS build is broken too — run `./bin/build-css.sh` to see the same error with more context, fix `styles.css`, then rerun the sorter.
+2. **`Cannot find package 'prettier-plugin-tailwindcss'`:** Run `npm install`. The package is a devDependency.
+3. **Outdated sorter:** After a major Tailwind upgrade, update the sorter too: `npm update prettier-plugin-tailwindcss`.
 
 ### IntelliJ Does Not Show Tailwind Autocompletion
 

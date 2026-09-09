@@ -5,19 +5,19 @@
 <!DOCTYPE html>
 <html lang="de">
 @template.fragments.head(title = title)
-<div class="h-screen w-full flex flex-col overflow-hidden bg-secondary">
+<div class="flex h-screen w-full flex-col overflow-hidden bg-secondary">
 	<header class="shrink-0">
 		<nav class="navbar bg-base-100 shadow-sm">
 			<a class="btn btn-ghost text-xl">SFA</a>
 		</nav>
 	</header>
 
-	<main class="flex-1 min-h-0 overflow-hidden">
+	<main class="min-h-0 flex-1 overflow-hidden">
 		${content}
 	</main>
 
 	<footer class="shrink-0">
-		<div class="footer sm:footer-horizontal bg-neutral text-neutral-content p-10">
+		<div class="footer bg-neutral p-10 text-neutral-content sm:footer-horizontal">
 			<nav>
 				ZDig BW
 			</nav>
