@@ -1,0 +1,8 @@
+@param kundenAnzahl: Int
+
+<%-- Empty partial targets the clicked row relative to the delete button; outerHTML of nothing removes the row --%>
+<%-- closest tr is relative to the DOM element from which the request was sent --%>
+<hx-partial hx-target="closest tr" hx-swap="outerHTML"></hx-partial>
+<hx-partial id="kundenanzahlContainer" hx-swap="outerHTML">
+	<span id="kundenanzahlContainer" class="badge badge-lg badge-primary">${kundenAnzahl}</span>
+</hx-partial>

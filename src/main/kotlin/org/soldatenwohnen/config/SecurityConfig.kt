@@ -1,6 +1,7 @@
 package org.soldatenwohnen.config
 
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
 
@@ -33,25 +34,29 @@ import org.springframework.security.web.SecurityFilterChain
 //}
 
 
-@Bean
-fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
-	http
-		.authorizeHttpRequests { requests ->
-			requests
-				.requestMatchers(
-					"/",
-					"/htmx-test",
-					"/wohnungen",
-					"/wohnungen/**",
-					"/kunden",
-					"/kunden/**",
-					"/css/**",
-					"/webjars/**",
-					"/favicon.ico"
-				).permitAll()
-				.anyRequest().authenticated()
-		}
-		.csrf { csrfConfigurer -> csrfConfigurer.disable() }
-		.formLogin { }
-		.httpBasic { }
-		.build()
+@Configuration
+class SecurityConfig {
+
+	@Bean
+	fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
+		http
+			.authorizeHttpRequests { requests ->
+				requests
+					.requestMatchers(
+						"/",
+						"/htmx-test",
+						"/wohnungen",
+						"/wohnungen/**",
+						"/kunden",
+						"/kunden/**",
+						"/css/**",
+						"/webjars/**",
+						"/favicon.ico"
+					).permitAll()
+					.anyRequest().authenticated()
+			}
+			.csrf { csrfConfigurer -> csrfConfigurer.disable() }
+			.formLogin { }
+			.httpBasic { }
+			.build()
+}

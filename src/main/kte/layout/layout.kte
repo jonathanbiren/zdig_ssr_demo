@@ -5,7 +5,7 @@
 <!DOCTYPE html>
 <html lang="de">
 @template.fragments.head(title = title)
-<div class="flex h-screen w-full flex-col overflow-hidden bg-secondary">
+<div class="flex h-screen w-full flex-col overflow-hidden bg-gray-200">
 	<header class="shrink-0">
 		<nav class="navbar bg-base-100 shadow-sm">
 			<a class="btn btn-ghost text-xl">SFA</a>
