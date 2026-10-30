@@ -1,4 +1,4 @@
-package org.soldatenwohnen.adapter.out
+package org.soldatenwohnen.adapter.outbound
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest

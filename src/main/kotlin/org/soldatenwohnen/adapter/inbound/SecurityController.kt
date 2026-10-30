@@ -1,4 +1,4 @@
-package org.soldatenwohnen.adapter.`in`
+package org.soldatenwohnen.adapter.inbound
 
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping

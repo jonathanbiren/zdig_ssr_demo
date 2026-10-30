@@ -1,5 +1,5 @@
-@import org.soldatenwohnen.adapter.`in`.KundePresentationModel
-@import org.soldatenwohnen.adapter.`in`.VerpflichtungPresentationModel
+@import org.soldatenwohnen.adapter.inbound.KundePresentationModel
+@import org.soldatenwohnen.adapter.inbound.VerpflichtungPresentationModel
 
 @param kunde: KundePresentationModel
 @param verpflichtungen: List<VerpflichtungPresentationModel>

@@ -1,4 +1,4 @@
-package org.soldatenwohnen.adapter.out
+package org.soldatenwohnen.adapter.outbound
 
 import org.jooq.DSLContext
 import org.jooq.Field
@@ -39,8 +39,9 @@ class KundenRepository(
 ) : IKundenRepository {
 
 	//region DAO Methods
-	override fun getAllClients(): List<Kunde> =
-		kundenDao.findAll().map { kundeDao -> kundeDao.toDomain() }
+	override fun getAllClients(): List<Kunde> {
+		return kundenDao.findAll().map { kundeDao -> kundeDao.toDomain() }
+	}
 
 	override fun getClient(id: UUID): Kunde? =
 		kundenDao.findById(id)?.toDomain()

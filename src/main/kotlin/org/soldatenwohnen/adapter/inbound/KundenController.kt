@@ -1,4 +1,4 @@
-package org.soldatenwohnen.adapter.`in`
+package org.soldatenwohnen.adapter.inbound
 
 
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest

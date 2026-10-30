@@ -1,4 +1,4 @@
-package org.soldatenwohnen.adapter.out
+package org.soldatenwohnen.adapter.outbound
 
 import org.jooq.DSLContext
 import org.soldatenwohnen.core.katalog.domain.model.Verpflichtung
