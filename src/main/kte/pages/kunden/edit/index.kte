@@ -1,6 +1,6 @@
-@import org.soldatenwohnen.adapter.inbound.KundePresentationModel
+@import org.zdigdemo.edge.repositories.KundeViewModel
 
-@param kunde: KundePresentationModel
+@param kunde: KundeViewModel
 
 @template.layout.layout(title = "Editieren | ${kunde.kurzname}", content = @`
 	<section

@@ -2,13 +2,11 @@ package org.zdigdemo.edge.controller
 
 
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
-import org.zdigdemo.core.Kunde.Kunde
-import org.zdigdemo.core.Verpflichtung.Verpflichtung
-import org.zdigdemo.edge.repositories.KundenRepository
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
-import java.text.NumberFormat
+import org.zdigdemo.edge.repositories.KundeViewModel
+import org.zdigdemo.edge.repositories.KundenRepository
 import java.util.*
 
 //Object for reducing the visual noise of Spring Boot not being able to resolve the JTE templates
@@ -31,8 +29,8 @@ class KundenController(
 	//region Full Page Endpoints
 	@GetMapping("/")
 	fun kundenMainPage(model: Model): String {
-		val listeAllerKunden: List<KundePresentationModel> =
-			kundenRepository.getAllClients().map { kunde -> kunde.toPresentationModel() }
+		val listeAllerKunden: List<KundeViewModel> =
+			kundenRepository.getAllClients()
 		model.addAttribute("kundenListe", listeAllerKunden)
 		return Views.INDEX
 	}
@@ -42,7 +40,7 @@ class KundenController(
 		@PathVariable id: UUID,
 		model: Model
 	): String {
-		val kunde = kundenRepository.getClient(id)?.toPresentationModel() ?: return Views.ERROR
+		val kunde = kundenRepository.getClient(id) ?: return Views.ERROR
 		model.addAttribute("kunde", kunde)
 		return Views.KUNDEN_EDIT
 	}
@@ -64,13 +62,12 @@ class KundenController(
 		model: Model
 	): String {
 		if (sucheingabe.isNullOrEmpty()) {
-			val listeAllerKunden: List<KundePresentationModel> = kundenRepository
-				.getAllClients().map { kunde -> kunde.toPresentationModel() }
+			val listeAllerKunden = kundenRepository
+				.getAllClients()
 			model.addAttribute("kundenListe", listeAllerKunden)
 		} else {
 			val listeGefilterterKunden = kundenRepository
 				.getAllClientsFittingSearchterm(sucheingabe)
-				.map { kunde -> kunde.toPresentationModel() }
 			model.addAttribute("kundenListe", listeGefilterterKunden)
 		}
 		return Views.FILTERED_LIST
@@ -93,46 +90,3 @@ class KundenController(
 //	}
 	//endregion
 }
-
-//region Presentation Models
-// This only exists to showcase that you would not directly pass the domain entity to the view, but instead convert
-// it all to Strings first, so that the presentation layer has no problem rendering the view
-data class KundePresentationModel(
-	val id: String,
-	val kurzname: String,
-	val name: String,
-	val zsNummer: Long,
-	val adresse: String,
-	val status: String,
-	val istBesondersSchuetzenswert: Boolean
-)
-
-// Amounts reach the view as preformatted Strings, like everything else: the template
-// never does arithmetic, the presentation layer converts cents to euros.
-data class VerpflichtungPresentationModel(
-	val bezeichnung: String,
-	val betrag: String
-)
-//endregion
-
-
-//region Mappers
-private fun Kunde.toPresentationModel(): KundePresentationModel = KundePresentationModel(
-	id = this.id.toString(),
-	kurzname = this.kurzname,
-	name = this.name,
-	zsNummer = this.zsNummer,
-	adresse = this.adresse,
-	status = this.status,
-	istBesondersSchuetzenswert = this.istBesondersSchuetzenswert
-)
-
-
-private fun Verpflichtung.toPresentationModel(): VerpflichtungPresentationModel =
-	VerpflichtungPresentationModel(
-		bezeichnung = this.bezeichnung,
-		betrag = NumberFormat.getCurrencyInstance(Locale.GERMANY)
-			.format(this.betragCent.toBigDecimal().movePointLeft(2))
-	)
-//endregion
-

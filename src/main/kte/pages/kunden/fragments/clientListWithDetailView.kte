@@ -1,5 +1,5 @@
-@import org.soldatenwohnen.adapter.inbound.KundePresentationModel
-@param kundenListe: List<KundePresentationModel>
+@import org.zdigdemo.edge.repositories.KundeViewModel
+@param kundenListe: List<KundeViewModel>
 
 <div x-data="{slideOverOpen: false}">
 	<table class="table table-pin-rows table-zebra table-lg">
@@ -21,7 +21,7 @@
 					<%--:class="selectedId == rowId ? 'active' : ''"--%>
 					@click="slideOverOpen = true"
 					hx-trigger="click"
-					hx-get="/kunden/${kunde.id}/detail"
+					hx-get="/kunden/${kunde.id.toString()}/detail"
 					hx-target="#side-panel-content"
 					hx-swap="innerHTML"
 					hx-sync="this:replace"
@@ -34,12 +34,12 @@
 				<td>${kunde.istBesondersSchuetzenswert}</td>
 				<td @click.stop>
 					<a class="btn btn-neutral btn-sm"
-					   href="/kunden/${kunde.id}/edit">
+					   href="/kunden/${kunde.id.toString()}/edit">
 						Edit
 					</a>
 					<button class="btn btn-neutral btn-sm"
 					        hx-trigger="click"
-					        hx-delete="/kunden/${kunde.id}/delete"
+					        hx-delete="/kunden/${kunde.id.toString()}/delete"
 					        hx-target="closest tr"
 					        hx-swap="outerHTML">
 						Delete

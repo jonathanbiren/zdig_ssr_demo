@@ -6,7 +6,6 @@ import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import org.zdigdemo.config.ClientSearchProperties
-import org.zdigdemo.core.Kunde.Kunde
 import org.zdigdemo.jooq.routines.references.wordSimilarity
 import org.zdigdemo.jooq.tables.daos.KundenDao
 import org.zdigdemo.jooq.tables.pojos.Kunden
@@ -31,11 +30,11 @@ class KundenRepository(
 ) {
 
 	//region DAO Methods
-	fun getAllClients(): List<Kunde> {
+	fun getAllClients(): List<KundeViewModel> {
 		return kundenDao.findAll().map { kundeDao -> kundeDao.toViewModel() }
 	}
 
-	fun getClient(id: UUID): Kunde? =
+	fun getClient(id: UUID): KundeViewModel? =
 		kundenDao.findById(id)?.toViewModel()
 
 	//* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
@@ -52,7 +51,7 @@ class KundenRepository(
 	)
 
 	// Custom Query using Postgres specific word_similarity function
-	fun getAllClientsFittingSearchterm(searchTerm: String): List<Kunde> {
+	fun getAllClientsFittingSearchterm(searchTerm: String): List<KundeViewModel> {
 		// wordSimilarity is the pg_trgm function word_similarity(), reverse-engineered
 		// by the code generator into a typed Kotlin function. No string SQL anywhere.
 		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
@@ -73,7 +72,18 @@ class KundenRepository(
 // the schema (see src/main/resources/db/migration), so these non-null assertions are backed
 // by the database itself. DAO methods return generated POJOs, DSL queries return Records —
 // hence one mapper per generated type.
-fun Kunden.toViewModel(): Kunde = Kunde(
+data class KundeViewModel(
+	var id: UUID,
+	var kurzname: String,
+	var name: String,
+	var zsNummer: Long,
+	var adresse: String,
+	var status: String,
+	var istBesondersSchuetzenswert: Boolean,
+) {}
+
+//Kunden is DAO type
+fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
 	id = id!!,
 	kurzname = kurzname!!,
 	name = name!!,
@@ -83,7 +93,8 @@ fun Kunden.toViewModel(): Kunde = Kunde(
 	istBesondersSchuetzenswert = besondersSchuetzenswert!!
 )
 
-fun KundenRecord.toViewModel(): Kunde = Kunde(
+//KundenRecord ist DSLContext type
+fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
 	id = id!!,
 	kurzname = kurzname!!,
 	name = name!!,

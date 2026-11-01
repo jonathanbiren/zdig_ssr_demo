@@ -1,5 +1,5 @@
-@import org.soldatenwohnen.adapter.inbound.KundePresentationModel
-@param kundenListe: List<KundePresentationModel>
+@import org.zdigdemo.edge.repositories.KundeViewModel
+@param kundenListe: List<KundeViewModel>
 
 @template.layout.layout(title = "SFA | Kunde", content = @`
 	<section
