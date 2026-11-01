@@ -8,7 +8,9 @@
 <div class="flex h-screen w-full flex-col overflow-hidden bg-gray-200">
 	<header class="shrink-0">
 		<nav class="navbar bg-base-100 shadow-sm">
-			<a class="btn btn-ghost text-xl">SFA</a>
+			<a class="btn btn-ghost text-xl" href="/">Kunden</a>
+			<a class="btn btn-ghost text-xl" href="/verpflichtungen">Verpflichtungen</a>
+			<a class="btn btn-ghost text-xl" href="/personen">Personen</a>
 		</nav>
 	</header>
 

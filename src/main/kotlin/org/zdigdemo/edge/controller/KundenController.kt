@@ -10,7 +10,7 @@ import org.zdigdemo.edge.repositories.KundenRepository
 import java.util.*
 
 //Object for reducing the visual noise of Spring Boot not being able to resolve the JTE templates
-private object Views {
+private object kundenViews {
 	//pages
 	const val INDEX = "pages/kunden/index"
 	const val KUNDEN_EDIT = "pages/kunden/edit/index"
@@ -33,7 +33,7 @@ class KundenController(
 		val listeAllerKunden: List<KundeViewModel> =
 			kundenRepository.getAllClients()
 		model.addAttribute("kundenListe", listeAllerKunden)
-		return Views.INDEX
+		return kundenViews.INDEX
 	}
 
 	@GetMapping("/kunden/{id}/edit")
@@ -41,9 +41,9 @@ class KundenController(
 		@PathVariable id: UUID,
 		model: Model
 	): String {
-		val kunde = kundenRepository.getClient(id) ?: return Views.ERROR
+		val kunde = kundenRepository.getClient(id) ?: return kundenViews.ERROR
 		model.addAttribute("kunde", kunde)
-		return Views.KUNDEN_EDIT
+		return kundenViews.KUNDEN_EDIT
 	}
 	//endregion
 
@@ -54,7 +54,7 @@ class KundenController(
 		kundenRepository.deleteClient(id)
 		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
 		model.addAttribute("kundenAnzahl", totalAmountOfClientsLeft)
-		return Views.ROW_DELETION_UPDATE
+		return kundenViews.ROW_DELETION_UPDATE
 	}
 
 	@HxRequest
@@ -72,7 +72,7 @@ class KundenController(
 				.getAllClientsFittingSearchterm(sucheingabe)
 			model.addAttribute("kundenListe", listeGefilterterKunden)
 		}
-		return Views.FILTERED_LIST
+		return kundenViews.FILTERED_LIST
 	}
 
 //	@HxRequest
