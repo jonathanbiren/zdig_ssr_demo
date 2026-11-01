@@ -200,6 +200,12 @@ Data persists in a Docker volume, so stopping and restarting the container does 
 ./bin/dev.sh
 ```
 
+### 3. Debug the Build
+If something is not working right with the build, do the following things: 
+1. Run a Maven `clean install` to rebuild generated sources of the project.
+2. Run `Reload All Maven Projects` in IntelliJ IDEA.
+3. Run `Rebuild Project` in IntelliJ IDEA.
+
 This script does two things simultaneously:
 
 1. Starts **Tailwind CSS in `--watch` mode** in the background. It watches `assets/styles.css` and all KTE/Kotlin templates, and rebuilds `static/css/app.css` on every change.
