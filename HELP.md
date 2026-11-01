@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
 }
 ```
 
-Spring Boot's component scan starts from the `org.soldatenwohnen` package and picks up all annotated classes beneath it.
+Spring Boot's component scan starts from the `zdigdemo` package and picks up all annotated classes beneath it.
 
 ---
 
@@ -73,11 +73,11 @@ The app starts on **port 8080** by default (`http://localhost:8080`).
 ## Common Error: ClassNotFoundException for SoldatenWohnenApplication
 
 ```
-Error: Could not find or load main class org.soldatenwohnen.SoldatenWohnenApplication
-Caused by: java.lang.ClassNotFoundException: org.soldatenwohnen.SoldatenWohnenApplication
+Error: Could not find or load main class org.zdigdemo.SoldatenWohnenApplication
+Caused by: java.lang.ClassNotFoundException: org.zdigdemo.SoldatenWohnenApplication
 ```
 
-**Why this happens:** In Kotlin, a top-level `fun main` compiles to a class named `SoldatenWohnenApplicationKt`, not `SoldatenWohnenApplication`. Running the `.class` file directly with `java -cp ...` will fail because the JVM looks for the wrong class name.
+**Why this happens:** In Kotlin, a top-level `fun main` compiles to a class named `DemoApplicationSFAKt`, not `DemoApplicationSFA`. Running the `.class` file directly with `java -cp ...` will fail because the JVM looks for the wrong class name.
 
 **Fix:** Always use the Maven wrapper to run the application — never invoke `java` directly on the compiled classes:
 
@@ -89,7 +89,7 @@ Caused by: java.lang.ClassNotFoundException: org.soldatenwohnen.SoldatenWohnenAp
 java -jar target/soldaten-wohnen-0.0.1-SNAPSHOT.jar
 
 # Wrong — do NOT do this
-java -cp target/classes org.soldatenwohnen.SoldatenWohnenApplication
+java -cp target/classes org.zdigdemo.SoldatenWohnenApplication
 ```
 
 ---

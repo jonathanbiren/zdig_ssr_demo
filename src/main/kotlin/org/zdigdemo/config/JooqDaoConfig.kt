@@ -1,8 +1,8 @@
-package org.soldatenwohnen.config
+package org.zdigdemo.config
 
 import org.jooq.Configuration
-import org.soldatenwohnen.jooq.tables.daos.KundenDao
-import org.soldatenwohnen.jooq.tables.daos.VerpflichtungenDao
+import org.zdigdemo.jooq.tables.daos.KundenDao
+import org.zdigdemo.jooq.tables.daos.VerpflichtungenDao
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration as SpringConfiguration
 

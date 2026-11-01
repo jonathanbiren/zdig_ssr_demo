@@ -1,4 +1,4 @@
-package org.soldatenwohnen
+package org.zdigdemo
 
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -9,8 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 // contains the class annotated with @SpringBootApplication, as well as inside the subpackages of that package.
 @SpringBootApplication
 @ConfigurationPropertiesScan
-class SoldatenWohnenApplication
+class DemoApplicationSFA
 
 fun main(args: Array<String>) {
-	SpringApplication.run(SoldatenWohnenApplication::class.java, *args)
+	SpringApplication.run(DemoApplicationSFA::class.java, *args)
 }

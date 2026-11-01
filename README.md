@@ -493,7 +493,7 @@ Three Maven plugins run in the `generate-sources` phase of **every** build (decl
 
 1. **`gmavenplus-plugin`** starts a throwaway PostgreSQL container via Testcontainers. No manual container management is needed; the container is deleted when the build JVM exits.
 2. **`flyway-maven-plugin`** applies the real migrations from `src/main/resources/db/migration` to that throwaway database. The generated code therefore always matches the exact schema your migrations produce — never a drifting local database.
-3. **`jooq-codegen-maven`** reverse-engineers the migrated schema into typed Kotlin classes in `target/generated-sources/jooq` (package `org.soldatenwohnen.jooq`): table constants (`KUNDEN`, `VERPFLICHTUNGEN`), typed column fields, record classes (`KundenRecord`, `VerpflichtungenRecord`), and even database functions (`wordSimilarity(...)` from `pg_trgm`).
+3. **`jooq-codegen-maven`** reverse-engineers the migrated schema into typed Kotlin classes in `target/generated-sources/jooq` (package `zdigdemo`): table constants (`KUNDEN`, `VERPFLICHTUNGEN`), typed column fields, record classes (`KundenRecord`, `VerpflichtungenRecord`), and even database functions (`wordSimilarity(...)` from `pg_trgm`).
 
 The generated code is a build artifact — it lives in `target/`, is not committed, and is regenerated on every build. **Consequence: any Maven build requires a running Docker daemon.** The dev database (`docker compose up -d`) is only needed to run the app and the tests, not for code generation.
 

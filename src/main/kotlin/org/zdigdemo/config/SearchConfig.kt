@@ -1,4 +1,4 @@
-package org.soldatenwohnen.config
+package org.zdigdemo.config
 
 import jakarta.validation.constraints.DecimalMax
 import jakarta.validation.constraints.DecimalMin

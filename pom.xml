@@ -298,7 +298,7 @@
 									<daos>true</daos>
 								</generate>
 								<target>
-									<packageName>org.soldatenwohnen.jooq</packageName>
+									<packageName>org.zdigdemo.jooq</packageName>
 									<directory>${project.build.directory}/generated-sources/jooq
 									</directory>
 								</target>

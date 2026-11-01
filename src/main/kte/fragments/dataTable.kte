@@ -1,0 +1,2 @@
+@import org.zdigdemo.edge.controller.KundePresentationModel
+@param list: List<KundePresentationModel>

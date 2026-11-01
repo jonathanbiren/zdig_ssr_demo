@@ -1,4 +1,4 @@
-package org.soldatenwohnen.config
+package org.zdigdemo.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

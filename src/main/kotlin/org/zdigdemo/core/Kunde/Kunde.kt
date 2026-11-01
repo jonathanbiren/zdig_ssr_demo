@@ -1,4 +1,4 @@
-package org.soldatenwohnen.core.katalog.domain.model
+package org.zdigdemo.core.Kunde
 
 import java.util.UUID
 

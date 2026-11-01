@@ -1,11 +1,11 @@
-package org.soldatenwohnen.adapter.outbound
+package org.zdigdemo.edge.repositories
 
 import org.jooq.DSLContext
-import org.soldatenwohnen.core.katalog.domain.model.Verpflichtung
-import org.soldatenwohnen.jooq.tables.daos.VerpflichtungenDao
-import org.soldatenwohnen.jooq.tables.pojos.Verpflichtungen
-import org.soldatenwohnen.jooq.tables.records.VerpflichtungenRecord
-import org.soldatenwohnen.jooq.tables.references.VERPFLICHTUNGEN
+import org.zdigdemo.core.Verpflichtung.Verpflichtung
+import org.zdigdemo.jooq.tables.daos.VerpflichtungenDao
+import org.zdigdemo.jooq.tables.pojos.Verpflichtungen
+import org.zdigdemo.jooq.tables.records.VerpflichtungenRecord
+import org.zdigdemo.jooq.tables.references.VERPFLICHTUNGEN
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
@@ -26,7 +26,7 @@ class VerpflichtungRepository(
 	// the domain layer or to map the DAO type to the domain layer first. Intuitively, given that we don't want
 	// to have dependencies flowing from domain -> data access, I would say mapping it is the better choice.
 	fun findById(id: UUID): Verpflichtung? =
-		verpflichtungenDao.findById(id)?.toDomain()
+		verpflichtungenDao.findById(id)?.toViewModel()
 
 	// The DAO API only offers separate insert()/update(); an upsert (INSERT .. ON CONFLICT
 	// .. DO UPDATE) is beyond it, so this stays a DSL query as well.
@@ -68,7 +68,7 @@ fun Verpflichtung.toDao() = Verpflichtungen(
 	erstelltAm = this.erstelltAm
 )
 
-fun Verpflichtungen.toDomain(): Verpflichtung = Verpflichtung(
+fun Verpflichtungen.toViewModel(): Verpflichtung = Verpflichtung(
 	id = id!!,
 	kundeId = kundeId!!,
 	bezeichnung = bezeichnung!!,
@@ -76,7 +76,7 @@ fun Verpflichtungen.toDomain(): Verpflichtung = Verpflichtung(
 	erstelltAm = erstelltAm!!
 )
 
-fun VerpflichtungenRecord.toDomain(): Verpflichtung = Verpflichtung(
+fun VerpflichtungenRecord.toViewModel(): Verpflichtung = Verpflichtung(
 	id = id!!,
 	kundeId = kundeId!!,
 	bezeichnung = bezeichnung!!,

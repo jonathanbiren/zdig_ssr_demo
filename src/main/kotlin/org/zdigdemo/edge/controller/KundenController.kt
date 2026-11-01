@@ -1,20 +1,15 @@
-package org.soldatenwohnen.adapter.inbound
+package org.zdigdemo.edge.controller
 
 
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
-import org.soldatenwohnen.core.katalog.application.port.out.IKundenRepository
-import org.soldatenwohnen.core.katalog.domain.model.Kunde
-import org.soldatenwohnen.core.katalog.domain.model.Verpflichtung
+import org.zdigdemo.core.Kunde.Kunde
+import org.zdigdemo.core.Verpflichtung.Verpflichtung
+import org.zdigdemo.edge.repositories.KundenRepository
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.ResponseBody
+import org.springframework.web.bind.annotation.*
 import java.text.NumberFormat
-import java.util.Locale
-import java.util.UUID
+import java.util.*
 
 //Object for reducing the visual noise of Spring Boot not being able to resolve the JTE templates
 private object Views {
@@ -30,7 +25,7 @@ private object Views {
 
 @Controller
 class KundenController(
-	val kundenRepository: IKundenRepository,
+	val kundenRepository: KundenRepository,
 ) {
 
 	//region Full Page Endpoints
@@ -81,21 +76,21 @@ class KundenController(
 		return Views.FILTERED_LIST
 	}
 
-	@HxRequest
-	@GetMapping("/kunden/{id}/detail")
-	fun kundenDetail(
-		@PathVariable id: UUID,
-		model: Model
-	): String {
-		val kundeMitVerpflichtungen =
-			kundenRepository.getKundeMitVerpflichtungen(id) ?: return Views.ERROR
-		model.addAttribute("kunde", kundeMitVerpflichtungen.kunde.toPresentationModel())
-		model.addAttribute(
-			"verpflichtungen",
-			kundeMitVerpflichtungen.verpflichtungen.map { it.toPresentationModel() }
-		)
-		return Views.KUNDEN_DETAILS
-	}
+//	@HxRequest
+//	@GetMapping("/kunden/{id}/detail")
+//	fun kundenDetail(
+//		@PathVariable id: UUID,
+//		model: Model
+//	): String {
+//		val kundeMitVerpflichtungen =
+//			kundenRepository.getKundeMitVerpflichtungen(id) ?: return Views.ERROR
+//		model.addAttribute("kunde", kundeMitVerpflichtungen.kunde.toPresentationModel())
+//		model.addAttribute(
+//			"verpflichtungen",
+//			kundeMitVerpflichtungen.verpflichtungen.map { it.toPresentationModel() }
+//		)
+//		return Views.KUNDEN_DETAILS
+//	}
 	//endregion
 }
 

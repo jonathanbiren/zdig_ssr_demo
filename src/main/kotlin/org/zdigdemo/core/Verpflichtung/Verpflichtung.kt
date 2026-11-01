@@ -1,4 +1,4 @@
-package org.soldatenwohnen.core.katalog.domain.model
+package org.zdigdemo.core.Verpflichtung
 
 import java.time.OffsetDateTime
 import java.util.UUID
