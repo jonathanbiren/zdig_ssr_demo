@@ -2,9 +2,9 @@
 
 The backend application for Soldaten Wohnen. It serves both the backend API and the server-rendered HTML user interface.
 
-There is no separate JavaScript frontend project. Pages are rendered with **Thymeleaf**, small interactive updates use **HTMX**, styling is generated with **Tailwind CSS v4**, and data is stored in **PostgreSQL**.
+There is no separate JavaScript frontend project. Pages are rendered with **JTE**, small interactive updates use **HTMX**, client-side interactivity uses **Alpine.js**, styling is generated with **Tailwind CSS v4** and **DaisyUI 5**, and data is stored in **PostgreSQL**.
 
-**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or a frontend framework like React or Vue. The only JavaScript-related file is `package.json`, and it exists solely because **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in Thymeleaf templates.** No Node.js code runs in the browser.
+**Important:** This project does not contain a JavaScript frontend, a TypeScript codebase, a bundler like Vite or Webpack, or an SPA framework like React or Vue. Two small JavaScript libraries do run in the browser — **HTMX** and **Alpine.js** — but they are loaded as minified files from WebJars, not built or bundled from source. The `package.json` exists for three reasons: **IntelliJ IDEA requires a locally installed `tailwindcss` npm package to provide Tailwind CSS class autocompletion in JTE templates**, **DaisyUI 5** is installed as an npm package and used as a Tailwind CSS plugin, and **the Tailwind class sorter** (`scripts/sort-tailwind-classes.mjs`) runs via Node.js. No Node.js code runs in the browser.
 
 ## Contents
 
@@ -13,14 +13,15 @@ There is no separate JavaScript frontend project. Pages are rendered with **Thym
 3. [One-Time Setup](#one-time-setup)
 4. [Daily Development Workflow](#daily-development-workflow)
 5. [How The CSS Build Works](#how-the-css-build-works)
-6. [Application Routes](#application-routes)
-7. [Database And Flyway](#database-and-flyway)
-8. [Architecture](#architecture)
-9. [Project Structure](#project-structure)
-10. [Why npm Is Used For Tailwind CSS](#why-npm-is-used-for-tailwind-css)
-11. [Updating Dependencies](#updating-dependencies)
-12. [Common Tasks](#common-tasks)
-13. [Troubleshooting](#troubleshooting)
+6. [Sorting Tailwind Classes In Templates](#sorting-tailwind-classes-in-templates)
+7. [Application Routes](#application-routes)
+8. [Database And Flyway](#database-and-flyway)
+9. [Architecture](#architecture)
+10. [Project Structure](#project-structure)
+11. [Why npm Is Used For Tailwind CSS](#why-npm-is-used-for-tailwind-css)
+12. [Updating Dependencies](#updating-dependencies)
+13. [Common Tasks](#common-tasks)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -28,15 +29,16 @@ There is no separate JavaScript frontend project. Pages are rendered with **Thym
 
 ### The Big Picture
 
-This is a **server-rendered web application**. The browser never runs a JavaScript framework. Instead:
+This is a **server-rendered web application**. The browser never runs an SPA framework or a JavaScript build step. Two small progressive-enhancement libraries — **HTMX** and **Alpine.js** — are loaded from WebJars for interactivity. Otherwise:
 
 1. The user clicks a link or submits a form.
 2. The browser sends a normal HTTP request to the Spring Boot server.
 3. Spring Boot runs Kotlin code, queries PostgreSQL, and decides what HTML to return.
-4. **Thymeleaf** renders the HTML template on the server.
+4. **JTE** renders the KTE template on the server.
 5. The browser receives raw HTML and displays it.
 6. For small interactive updates (like filtering a list), **HTMX** intercepts the click, sends a background request, and swaps a fragment of the page without a full reload.
-7. **Tailwind CSS** provides the styling. It is a static CSS file served by Spring Boot like any other asset.
+7. For client-side state that doesn't need the server (like toggling a modal or a dropdown), **Alpine.js** handles it directly in the browser.
+8. **Tailwind CSS** together with **DaisyUI 5** provides the styling. The result is a static CSS file served by Spring Boot like any other asset.
 
 ### Why npm Is Present In This Project
 
@@ -45,26 +47,28 @@ Tailwind CSS v4 can be installed and run in two ways:
 1. **Standalone CLI** — a single binary, no npm required. Fast and self-contained.
 2. **npm package** — installed via `npm install`. Slightly more overhead, but universally supported by IDE tooling.
 
-**This project uses the npm package.** The reason is simple: IntelliJ IDEA's Tailwind CSS Language Server detects the `tailwindcss` package in `node_modules` and uses it to provide class autocompletion, hover documentation, and CSS preview inside Thymeleaf HTML templates. Without the npm package, the language server does not activate, and you get no autocomplete.
+**This project uses the npm package.** The reason is simple: IntelliJ IDEA's Tailwind CSS Language Server detects the `tailwindcss` package in `node_modules` and uses it to provide class autocompletion, hover documentation, and CSS preview inside KTE templates. Without the npm package, the language server does not activate, and you get no autocomplete.
 
 This is the **only** reason `package.json` and `node_modules` exist. They are not used for a JavaScript build pipeline, a frontend framework, or client-side bundling.
 
 ### How Hot Reload Works
 
-There are **two independent hot-reload mechanisms** running in parallel during development:
+There are **three independent hot-reload mechanisms** running in parallel during development:
 
 | Mechanism | Watches | What happens |
 |---|---|---|
-| **Tailwind CSS `--watch`** | `assets/styles.css`, HTML templates, Kotlin source files | Recompiles `static/css/app.css` whenever you add or remove Tailwind classes |
+| **JTE file watcher** | `src/main/kte/*.kte` | Recompiles changed templates on the fly (enabled by `gg.jte.developmentMode=true`). No server restart needed. |
+| **Tailwind CSS `--watch`** | `assets/styles.css`, KTE templates, Kotlin source files | Recompiles `static/css/app.css` whenever you add or remove Tailwind classes |
 | **Spring Boot DevTools** | `static/` directory, classpath (Kotlin/Java files) | Restarts the server on code changes; triggers LiveReload in the browser when static assets change |
 
-**The flow when you edit a template:**
+**The flow when you edit a KTE template:**
 
-1. You add a new Tailwind class to an HTML template.
-2. Tailwind's watcher detects the change and rebuilds `app.css` (takes ~40ms).
-3. Spring Boot DevTools detects that `app.css` was modified.
-4. DevTools either triggers a browser LiveReload, or the next page request simply serves the new file.
-5. You see the change immediately without manually refreshing.
+1. You add a new Tailwind class to a KTE template.
+2. JTE detects the change and recompiles the template on the next request — no restart needed.
+3. Tailwind's watcher detects the change and rebuilds `app.css` (takes ~40ms).
+4. Spring Boot DevTools detects that `app.css` was modified.
+5. DevTools either triggers a browser LiveReload, or the next page request simply serves the new file.
+6. You see the change immediately without manually refreshing.
 
 **The flow when you edit Kotlin code:**
 
@@ -72,6 +76,60 @@ There are **two independent hot-reload mechanisms** running in parallel during d
 2. Spring Boot DevTools detects the classpath change.
 3. It restarts the embedded server (fast, because only your code changed, not dependencies).
 4. The new logic is active on the next request.
+
+### When To Use JTE, HTMX, and Alpine.js
+
+The frontend uses three technologies that have some overlapping capabilities. The heuristic for choosing between them is based on **where the source of truth lives**:
+
+| Source of truth | Use |
+|---|---|
+| Server (auth, permissions, persisted data, server-known state at render time) | **JTE** |
+| Browser interaction after page load (toggles, dropdowns, tabs, transient UI state) | **Alpine.js** |
+| Server data that changes *after* initial render (search results, form validation against server state, loading new content) | **HTMX** |
+
+**One-line heuristic:** JTE decides what's on the page at all (and what's *allowed* to be). Alpine decides how what's already there behaves. HTMX brings in new pieces from the server when the client doesn't have them.
+
+### Security-sensitive rendering: always JTE
+
+`@if` runs on the server — the hidden branch is never sent to the browser. It isn't in the HTML. `x-show` / `x-if` runs in the browser — the hidden markup *is* in the HTML, just `display:none`. DevTools reveals and toggles it in two clicks. Admin buttons, sensitive fields, anything security-gated: **JTE only**. Alpine is for non-sensitive UI state.
+
+### Resolving the overlaps
+
+**Conditional rendering:**
+
+| Condition depends on… | Use |
+|---|---|
+| Auth / permissions / server-known state at render time | JTE `@if` |
+| User interaction after page load (click, toggle, input) | Alpine `x-show` / `x-if` |
+| Server state that *changes after* load | HTMX re-fetch + JTE template |
+
+**"While typing" form validation — layer them in this order:**
+
+1. **HTML5** (`required`, `type="email"`, `pattern`, `minlength`) — free, native, first line.
+2. **Alpine.js** — instant feedback for rules the client knows (length counter, password match, regex). No network.
+3. **HTMX** (`hx-trigger="keyup changed delay:400ms"`) — for rules only the server can answer (username available, cross-record rules). Returns an error fragment.
+4. **Spring `@Valid` + JTE** — authoritative fallback that works without JS. Renders errors after a full submit.
+
+Heuristic: "valid email format" → Alpine/HTML5. "Username taken?" → HTMX. Always keep tier 4 regardless — tiers 1–3 are progressive enhancement.
+
+### They cooperate, they don't just divide
+
+One element can legitimately use all three — JTE decides *if* it's rendered (security), Alpine manages *open/close state*, HTMX *loads its content* from the server when opened:
+
+```kte
+@if(user.hasRole("ADMIN"))
+<button x-data="{ open: false }" @click="open = true"
+        class="btn btn-primary">Edit</button>
+@endif
+
+<dialog class="modal" :class="open && 'modal-open'">
+  <div class="modal-box" hx-get="/wohnungen/42/edit" hx-target="this" hx-swap="innerHTML">
+    <!-- HTMX fills this with a JTE-rendered form when the modal opens -->
+  </div>
+</dialog>
+```
+
+The event bridge runs both ways: HTMX fires `htmx:afterSwap` that Alpine can listen for (re-initialise a widget on new content), and Alpine can call `htmx.trigger(el, 'refresh')` to fire an HTMX request from Alpine state.
 
 ---
 
@@ -81,11 +139,14 @@ There are **two independent hot-reload mechanisms** running in parallel during d
 |---|---|---|
 | JVM language | Kotlin | `src/main/kotlin` |
 | Web framework | Spring Boot Web MVC | Controllers in `adapter/in` |
-| HTML rendering | Thymeleaf | `src/main/resources/templates` |
+| HTML rendering | JTE (.kte) | `src/main/kte` |
 | HTML fragment updates | HTMX | Served from a WebJar under `/webjars/**` |
-| Styling | Tailwind CSS v4 (via npm) | Source in `assets/styles.css`, output in `static/css/app.css` |
+| Client-side interactivity | Alpine.js | Served from a WebJar under `/webjars/**` |
+| Styling: utilities | Tailwind CSS v4 (via npm) | Source in `assets/styles.css`, output in `static/css/app.css` |
+| Styling: components | DaisyUI 5 (via npm) | Configured as a Tailwind plugin in `assets/styles.css` |
 | CSS build tool | `@tailwindcss/cli` (via npm) | Scripts in `package.json` |
-| Database access | Spring Data JDBC | `adapter/out/WohnungRepositoryAdapter.kt` |
+| Database access | jOOQ (type-safe SQL DSL) | `adapter/out/KundenRepository.kt`, `adapter/out/VerpflichtungRepository.kt` |
+| DB code generation | jOOQ codegen (Testcontainers + Flyway, runs in Maven build) | `pom.xml`, output in `target/generated-sources/jooq` |
 | Database | PostgreSQL | Docker Compose at `docker-compose.yml` |
 | Schema migrations | Flyway | `src/main/resources/db/migration` |
 | Build tool | Maven Wrapper | `./mvnw` |
@@ -109,7 +170,7 @@ docker compose up -d
 npm install
 ```
 
-This installs `tailwindcss` and `@tailwindcss/cli` into `node_modules/`. It is ignored by git. The `tailwindcss` package is what IntelliJ detects for autocompletion. The `@tailwindcss/cli` package provides the `tailwindcss` command used by the build scripts.
+This installs `tailwindcss`, `@tailwindcss/cli`, and `daisyui` into `node_modules/`. It is ignored by git. The `tailwindcss` package is what IntelliJ detects for autocompletion. The `@tailwindcss/cli` package provides the `tailwindcss` command used by the build scripts. The `daisyui` package is the component library used as a Tailwind CSS plugin.
 
 You need **Node.js and npm** installed on your machine for this step. You do not need to know anything about npm beyond running `npm install` and the occasional `npm update`.
 
@@ -141,7 +202,7 @@ Data persists in a Docker volume, so stopping and restarting the container does 
 
 This script does two things simultaneously:
 
-1. Starts **Tailwind CSS in `--watch` mode** in the background. It watches `assets/styles.css` and all HTML/Kotlin templates, and rebuilds `static/css/app.css` on every change.
+1. Starts **Tailwind CSS in `--watch` mode** in the background. It watches `assets/styles.css` and all KTE/Kotlin templates, and rebuilds `static/css/app.css` on every change.
 2. Starts **Spring Boot** in the foreground. DevTools is active. LiveReload runs on port `35729`.
 
 Press `Ctrl+C` to stop both processes cleanly.
@@ -156,7 +217,7 @@ The home route `/` redirects to the catalogue page.
 
 ### 4. Make Changes And See Them Instantly
 
-- **Edit HTML templates**: Save the file. Tailwind rebuilds CSS if you added new classes. The browser may auto-reload via LiveReload.
+- **Edit KTE templates**: Save the file. JTE hot-reloads the template. Tailwind rebuilds CSS if you added new classes. The browser may auto-reload via LiveReload.
 - **Edit Kotlin code**: Save the file. Spring Boot DevTools restarts the server in ~1-2 seconds.
 - **Edit `assets/styles.css`**: Save the file. Tailwind rebuilds immediately.
 
@@ -168,7 +229,10 @@ You do **not** need to stop and restart `./bin/dev.sh` for normal template or co
 ./mvnw test
 ```
 
-Tests start the full Spring application context, so PostgreSQL must be running.
+Two infrastructure requirements:
+
+- **Every Maven build needs a running Docker daemon.** The jOOQ code generator starts a throwaway PostgreSQL container via Testcontainers during the build.
+- **Tests additionally need the dev database** (`docker compose up -d`), because they boot the full Spring application context.
 
 For a fast compile-only check:
 
@@ -190,12 +254,29 @@ Maven automatically runs `./bin/build-css.sh` during the `generate-resources` ph
 
 ### Source File
 
-`src/main/resources/assets/styles.css` is the **source** file. It is a valid CSS file that uses Tailwind v4 directives:
+`src/main/resources/assets/styles.css` is the **source** file. It is a valid CSS file that uses Tailwind v4 directives plus the DaisyUI plugin:
 
 ```css
 @import "tailwindcss";
+@plugin "daisyui" {
+  themes: false;
+}
+@plugin "daisyui/theme" {
+  name: "sowo";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
 
-@source "../templates/**/*.html";
+  --color-base-100: oklch(20% 0.02 255);
+  /* ...all theme color tokens... */
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.75rem;
+  /* ...size, border, depth, noise... */
+}
+
+@source "../../kte/**/*.kte";
 @source "../../kotlin/**/*.kt";
 
 @theme {
@@ -207,11 +288,26 @@ Maven automatically runs `./bin/build-css.sh` during the `generate-resources` ph
 ```
 
 - `@import "tailwindcss"` brings in the entire Tailwind framework.
-- `@source` tells Tailwind which files to scan for class names. This is how Tailwind knows which utility classes to include in the output.
-- `@theme` defines custom design tokens (colors, fonts, spacing) using CSS custom properties.
+- `@plugin "daisyui"` registers DaisyUI 5 as a Tailwind plugin. `themes: false` disables all 35 built-in themes so they don't leak into the output.
+- `@plugin "daisyui/theme"` defines a custom theme called `sowo`. Every color, radius, and size token is set here. This is how the site avoids looking like a generic DaisyUI site — all 35 built-in themes are disabled and only `sowo` ships.
+- `@source` tells Tailwind which files to scan for class names. This is how Tailwind knows which utility *and* DaisyUI component classes to include in the output.
+- `@theme` defines custom Tailwind design tokens (fonts, spacing) using CSS custom properties.
 - `@layer base` and `@layer components` are for your own custom CSS.
 
 **No `tailwind.config.js` or `postcss.config.js` is needed.** Tailwind v4 is fully configured inside the CSS file itself.
+
+### Styling Philosophy: DaisyUI vs Tailwind
+
+**DaisyUI is the bread and butter. Tailwind is the fine-tuning.**
+
+- Use **DaisyUI component classes** (`btn`, `card`, `badge`, `table`, `modal`, `tabs`, `menu`, `drawer`, `alert`, `input`, `select`, etc.) for the vast majority of the UI. They are semantic, terse, and consistent across all 50 screens. Restyle them globally by editing the `sowo` theme tokens in `styles.css` — one change updates every instance.
+- Use **Tailwind utility classes** for layout, spacing, and one-off customisation that DaisyUI's component classes weren't designed for (e.g. a bespoke marketing hero with asymmetric layout). Add utilities alongside DaisyUI classes: `class="btn btn-primary rounded-none"`.
+
+The `sowo` theme is the single point of customisation for the site's visual identity. Change `--color-primary`, `--radius-box`, `--depth`, etc. and every DaisyUI component updates. Do not override component styles piecemeal across templates — that defeats the purpose of having a theme.
+
+### JIT Pruning
+
+DaisyUI component classes (`.btn`, `.card`, `.badge`, etc.) are only emitted into `app.css` **if they appear in a scanned template**. Tailwind v4's JIT engine scans the `@source` files and prunes everything unused. This means the CSS bundle grows only with what you actually use — typically 6–10 KB gzipped for a moderate set of components, compared to shipping the entire library.
 
 ### Compiled File
 
@@ -219,19 +315,22 @@ Maven automatically runs `./bin/build-css.sh` during the `generate-resources` ph
 
 ### npm Scripts
 
-The `package.json` defines three scripts:
+The `package.json` defines these scripts:
 
 | Script | Command | When to use |
 |---|---|---|
 | `build` | `tailwindcss -i ... -o ...` | Development build without minification |
 | `build-prod` | `tailwindcss -i ... -o ... --minify` | Production build. Used by Maven and `build-css.sh`. |
 | `watch` | `tailwindcss -i ... -o ... --watch` | Development. Used by `dev.sh`. Rebuilds on every file change. |
+| `sort-classes` | `node scripts/sort-tailwind-classes.mjs` | Sorts Tailwind classes in all KTE templates (see [Sorting Tailwind Classes In Templates](#sorting-tailwind-classes-in-templates)) |
+| `sort-classes:check` | `node scripts/sort-tailwind-classes.mjs --check` | Reports unsorted classes without modifying files; exits 1 if any are found |
 
 You can run these directly if you prefer:
 
 ```bash
 npm run build-prod
 npm run watch
+npm run sort-classes
 ```
 
 ### Build Scripts
@@ -251,11 +350,60 @@ Run `npm install` again. Both `build-css.sh` and `dev.sh` will automatically run
 
 ---
 
+## Sorting Tailwind Classes In Templates
+
+### What It Is
+
+`class="table table-lg table-pin-rows"` is easier to read and review when the classes follow the **official Tailwind ordering** (layout → sizing → spacing → colors → variants). The project has a small Node.js script that reorders classes in all KTE templates into that canonical order:
+
+```bash
+npm run sort-classes
+```
+
+Run it whenever you like — before committing, after a big editing session, whenever. It is **idempotent**: if everything is already sorted, it changes nothing and reports `0 class attribute(s) sorted`.
+
+To check without modifying files (useful in CI or as a pre-commit check):
+
+```bash
+npm run sort-classes:check
+```
+
+This exits with code 1 and lists the offending files if any class attribute is unsorted.
+
+### What It Does And Does Not Touch
+
+- **Sorts:** static `class="..."` attributes in `src/main/kte/**/*.kte`.
+- **Skips:** class values containing `${...}` (template interpolation) or `@` (JTE directives) — dynamic class strings are never reordered.
+- **Never touches:** indentation, quotes, line wrapping, or anything outside `class="..."` values. It is not a formatter.
+
+### How It Works (And Why It Exists)
+
+The sorting logic is **not** custom — it comes from `prettier-plugin-tailwindcss`, the official Tailwind Labs ordering engine, resolved against the project's real stylesheet (`assets/styles.css`), so DaisyUI component classes and the `sowo` theme tokens sort correctly too.
+
+The script (`scripts/sort-tailwind-classes.mjs`) is only plumbing around that engine. It exists because the usual tools cannot handle this project:
+
+- **Prettier + `prettier-plugin-tailwindcss`** is the standard way to sort classes, but Prettier has no parser for JTE/Kotlin templates (`.kte`), so it cannot process them.
+- **IDE plugins** (e.g. Trier) target HTML/JSX/Vue/Blade/Twig, not KTE, and their bundled sorter runtimes fail on this project's Tailwind v4 CSS-first config (no `tailwind.config.js`, DaisyUI `@plugin` blocks).
+
+The Tailwind team ships a standalone sorter API (`prettier-plugin-tailwindcss/sorter`) for exactly this situation. The script walks the KTE files, finds `class="..."` attributes with a regex, hands each value to the official sorter, and writes the file back. If Prettier or an IDE plugin ever gains KTE support, the script can be deleted and replaced by that tool — the ordering would be identical.
+
+### When To Run It
+
+- **Manually, whenever:** `npm run sort-classes`. There is no watcher or automatic trigger.
+- **Before committing:** keeps diffs free of class-order noise.
+- **In CI (optional):** `npm run sort-classes:check` fails the build if templates contain unsorted classes.
+
+### If The Script Breaks After A Tailwind Update
+
+The sorter compiles `assets/styles.css` internally. If a Tailwind or DaisyUI upgrade changes the CSS syntax, the script may fail with an error mentioning the stylesheet. Fix `styles.css` first (the same error would break the CSS build), then rerun. If the `prettier-plugin-tailwindcss` package itself is outdated, update it with `npm update prettier-plugin-tailwindcss`.
+
+---
+
 ## Application Routes
 
 ### Public HTML Routes
 
-Rendered with Thymeleaf and accessible without authentication:
+Rendered with JTE and accessible without authentication:
 
 | Route | Purpose |
 |---|---|
@@ -319,9 +467,9 @@ Spring Boot reads these values from `src/main/resources/application.properties`.
 
 ### What Flyway Does
 
-Flyway owns the database schema. The `@Table("wohnungen")` annotation in `WohnungRepositoryAdapter.kt` does not create a table. It only tells Spring Data JDBC which table a Kotlin class maps to.
+Flyway owns the database schema. It is the **only** thing that creates or changes tables. jOOQ does not manage the schema at all — it works the other way around: at build time, the jOOQ code generator reads the migrated schema and generates typed Kotlin classes from it (see "How jOOQ Code Generation Works" below). Your Kotlin code then references tables and columns as generated, compiler-checked constants, so a schema change that breaks a query fails the build, not the runtime.
 
-The actual table is created by SQL migrations in:
+The actual tables are created by SQL migrations in:
 
 ```text
 src/main/resources/db/migration
@@ -331,10 +479,25 @@ Current migrations:
 
 | File | Purpose |
 |---|---|
-| `V1__create_wohnungen.sql` | Creates the `wohnungen` table and index |
-| `V2__seed_wohnungen.sql` | Inserts development apartment data |
+| `V1__create_kunden.sql` | Creates the `kunden` table |
+| `V2__seed_kunden.sql` | Inserts development customer data |
+| `V3__enable_trigrams.sql` | Enables the `pg_trgm` extension (fuzzy text search) |
+| `V4__create_verpflichtungen.sql` | Creates the `verpflichtungen` table and index |
+| `V5__seed_verpflichtungen.sql` | Inserts development liability data |
 
 Spring Boot runs Flyway before accepting requests. If a migration has not been applied, Flyway applies it automatically.
+
+### How jOOQ Code Generation Works
+
+Three Maven plugins run in the `generate-sources` phase of **every** build (declared in `pom.xml`, in order):
+
+1. **`gmavenplus-plugin`** starts a throwaway PostgreSQL container via Testcontainers. No manual container management is needed; the container is deleted when the build JVM exits.
+2. **`flyway-maven-plugin`** applies the real migrations from `src/main/resources/db/migration` to that throwaway database. The generated code therefore always matches the exact schema your migrations produce — never a drifting local database.
+3. **`jooq-codegen-maven`** reverse-engineers the migrated schema into typed Kotlin classes in `target/generated-sources/jooq` (package `zdigdemo`): table constants (`KUNDEN`, `VERPFLICHTUNGEN`), typed column fields, record classes (`KundenRecord`, `VerpflichtungenRecord`), and even database functions (`wordSimilarity(...)` from `pg_trgm`).
+
+The generated code is a build artifact — it lives in `target/`, is not committed, and is regenerated on every build. **Consequence: any Maven build requires a running Docker daemon.** The dev database (`docker compose up -d`) is only needed to run the app and the tests, not for code generation.
+
+The repositories in `adapter/out` are plain classes that use the auto-configured `DSLContext` (`spring-boot-starter-jooq`) together with these generated classes. SQL is written as Kotlin code; there are no annotations, no derived query methods, and no ORM session.
 
 ### Migration Naming
 
@@ -347,9 +510,9 @@ V{number}__{description}.sql
 Examples:
 
 ```text
-V3__add_balkon_to_wohnungen.sql
-V4__create_bewerbungen.sql
-V5__add_index_on_bewerbungen_status.sql
+V6__add_balkon_to_wohnungen.sql
+V7__create_bewerbungen.sql
+V8__add_index_on_bewerbungen_status.sql
 ```
 
 Use two underscores between the version and the description.
@@ -385,22 +548,19 @@ The goal is separation of concerns:
 | `application/service` | Application orchestration, transactions, and use case implementations |
 | `application/port/out` | Interfaces for infrastructure needed by the application |
 | `adapter/in` | Inbound adapters such as MVC page controllers and JSON API controllers |
-| `adapter/out` | Outbound adapters such as Spring Data JDBC persistence |
+| `adapter/out` | Outbound adapters such as jOOQ-based persistence |
 
 Request flow for the catalogue page:
 
 ```text
 Browser
--> KatalogPageController
--> WohnungenAuflistenUseCase
--> WohnungssucheService
--> WohnungRepository
--> WohnungRepositoryAdapter
--> WohnungJdbcRepository
+-> KundenController
+-> KundenRepository
+-> DSLContext (jOOQ, auto-configured by Spring Boot)
 -> PostgreSQL
 ```
 
-Dependency direction points inward. The domain model does not know about Spring MVC, Thymeleaf, JDBC, Flyway, or PostgreSQL.
+Dependency direction points inward. The domain model does not know about Spring MVC, JTE, jOOQ, Flyway, or PostgreSQL.
 
 ---
 
@@ -414,6 +574,8 @@ soldaten-wohnen/
 |-- bin/
 |   |-- build-css.sh                    # One-off CSS build (used by Maven and manual runs)
 |   |-- dev.sh                          # Development: runs Tailwind watcher + Spring Boot
+|-- scripts/
+|   |-- sort-tailwind-classes.mjs       # Sorts Tailwind classes in KTE templates (official ordering)
 |-- node_modules/                        # Installed npm packages (ignored by git)
 |-- src/
 |   |-- main/
@@ -423,52 +585,57 @@ soldaten-wohnen/
 |   |   |       |-- SecurityConfig.kt
 |   |   |       |-- adapter/
 |   |   |       |   |-- in/
-|   |   |       |   |   |-- KatalogPageController.kt
-|   |   |       |   |   |-- WohnungenAuflistenController.kt
-|   |   |       |   |   |-- WohnungDetailAnzeigenController.kt
+|   |   |       |   |   |-- KundenController.kt
 |   |   |       |   |-- out/
-|   |   |       |       |-- WohnungRepositoryAdapter.kt
+|   |   |       |       |-- KundenRepository.kt          # jOOQ: queries, MULTISET aggregate load, trigram search
+|   |   |       |       |-- VerpflichtungRepository.kt   # jOOQ: simple CRUD + upsert
+|   |   |       |-- config/
+|   |   |       |   |-- Configuration.kt
 |   |   |       |-- core/
 |   |   |           |-- katalog/
-|   |   |               |-- domain/model/Wohnung.kt
-|   |   |               |-- application/port/in/WohnungenAuflistenUseCase.kt
-|   |   |               |-- application/port/in/WohnungDetailAnzeigenUseCase.kt
-|   |   |               |-- application/port/out/WohnungRepository.kt
-|   |   |               |-- application/service/WohnungssucheService.kt
+|   |   |               |-- domain/model/Kunde.kt
+|   |   |               |-- domain/model/Verpflichtung.kt
+|   |   |               |-- domain/model/KundeMitVerpflichtungen.kt
 |   |   |-- resources/
-|   |       |-- application.properties   # App config, datasource, security, Thymeleaf, DevTools
+|   |       |-- application.properties   # App config, datasource, security, JTE, DevTools
 |   |       |-- assets/
 |   |       |   |-- styles.css          # Tailwind v4 source file
 |   |       |-- static/
 |   |       |   |-- css/
 |   |       |       |-- app.css         # Generated CSS served by Spring Boot
-|   |       |-- templates/
-|   |       |   |-- fragments/site.html
-|   |       |   |-- wohnungen/index.html
-|   |       |   |-- wohnungen/detail.html
-|   |       |   |-- wohnungen/fragments.html
+|   |       |-- templates/              # Old Thymeleaf templates (pending migration to KTE)
+|   |       |   |-- sfa/index.html      # Reference for migration
 |   |       |-- db/migration/
-|   |           |-- V1__create_wohnungen.sql
-|   |           |-- V2__seed_wohnungen.sql
+|   |           |-- V1__create_kunden.sql
+|   |           |-- V2__seed_kunden.sql
+|   |           |-- V3__enable_trigrams.sql
+|   |           |-- V4__create_verpflichtungen.sql
+|   |           |-- V5__seed_verpflichtungen.sql
+|   |-- kte/                            # JTE Kotlin templates
+|   |   |-- layout.kte                  # Shared layout (head, header, footer)
+|   |   |-- head.kte                    # <head> with CSS, HTMX, Alpine.js WebJars
+|   |   |-- test.kte                    # Test page
 |   |-- test/
 |       |-- kotlin/org/soldatenwohnen/SoldatenWohnenApplicationTests.kt
+|       |-- kotlin/org/soldatenwohnen/adapter/out/KundenRepositoryTest.kt
+|-- target/generated-sources/jooq/      # Generated jOOQ classes (build artifact, not committed)
 ```
 
 ### Important Files
 
 | File | Why it matters |
 |---|---|
-| `pom.xml` | Maven dependencies, Kotlin compiler, exec plugin for CSS build |
-| `package.json` | Tailwind CSS version and npm build scripts (`build`, `build-prod`, `watch`) |
-| `application.properties` | App name, datasource, Flyway, security, Thymeleaf, DevTools |
+| `pom.xml` | Maven dependencies, Kotlin compiler, JTE plugin, jOOQ codegen pipeline, exec plugin for CSS build |
+| `package.json` | Tailwind CSS + DaisyUI versions and npm build scripts (`build`, `build-prod`, `watch`, `sort-classes`) |
+| `scripts/sort-tailwind-classes.mjs` | Sorts Tailwind classes in KTE templates using the official ordering; run via `npm run sort-classes` |
+| `application.properties` | App name, datasource, Flyway, jOOQ dialect, security, JTE, DevTools |
 | `SecurityConfig.kt` | Public page routes and protected API routes |
-| `KatalogPageController.kt` | Thymeleaf page routes and HTMX fragment routes |
-| `WohnungenAuflistenController.kt` | JSON API list endpoint |
-| `WohnungDetailAnzeigenController.kt` | JSON API detail endpoint |
-| `WohnungRepositoryAdapter.kt` | Spring Data JDBC row mapping and repository adapter |
-| `Wohnung.kt` | Domain model for apartments |
-| `templates/wohnungen/*.html` | Catalogue page, detail page, and reusable fragments |
-| `assets/styles.css` | Tailwind v4 source file |
+| `KundenController.kt` | JTE page routes and HTMX fragment routes |
+| `KundenRepository.kt` / `VerpflichtungenRepository.kt` | jOOQ persistence adapters: type-safe SQL via `DSLContext`, no annotations |
+| `target/generated-sources/jooq/` | Generated jOOQ table/record/routine classes. Build artifact, never edited, not committed |
+| `Kunde.kt`, `Verpflichtung.kt`, `KundeMitVerpflichtungen.kt` | Domain model (pure Kotlin, no persistence annotations) |
+| `kte/*.kte` | JTE Kotlin templates (layout, head, pages) |
+| `assets/styles.css` | Tailwind v4 + DaisyUI 5 source file (plugin, `sowo` theme, custom layers) |
 | `static/css/app.css` | Generated CSS served by Spring Boot |
 | `db/migration/*.sql` | Flyway schema migrations |
 
@@ -491,7 +658,7 @@ We initially used the **standalone CLI**. The build worked perfectly. CSS compil
 
 ### Why We Switched To npm
 
-**IntelliJ IDEA does not support the standalone CLI for autocompletion.** Its bundled Tailwind CSS Language Server is designed around the npm ecosystem. It looks for `node_modules/tailwindcss` to detect a Tailwind project. Without that package, the language server never activates, and you get **no class autocompletion** inside Thymeleaf HTML templates.
+**IntelliJ IDEA does not support the standalone CLI for autocompletion.** Its bundled Tailwind CSS Language Server is designed around the npm ecosystem. It looks for `node_modules/tailwindcss` to detect a Tailwind project. Without that package, the language server never activates, and you get **no class autocompletion** inside KTE templates.
 
 JetBrains documentation recommends installing `@tailwindcss/language-server` globally and pointing IntelliJ to it, but in practice this does not work reliably for Tailwind v4 projects without a local `node_modules/tailwindcss` installation.
 
@@ -501,9 +668,9 @@ The `package.json` and `node_modules` exist **only** to satisfy the IDE. They ar
 
 | Advantage | Explanation |
 |---|---|
-| **IDE autocompletion works** | IntelliJ provides Tailwind class completion, hover documentation, and CSS preview in HTML templates. |
-| **Standard ecosystem** | The `build`, `build-prod`, `watch` scripts in `package.json` match the setup described in *Taming Thymeleaf* and other learning resources. |
-| **Easy plugin additions** | If you ever need a Tailwind plugin (e.g., `@tailwindcss/forms`), you can add it to `package.json` like any other npm dependency. |
+| **IDE autocompletion works** | IntelliJ provides Tailwind class completion, hover documentation, and CSS preview in KTE templates. |
+| **Standard ecosystem** | The `build`, `build-prod`, `watch` scripts in `package.json` match common Tailwind CSS learning resources. |
+| **Easy plugin additions** | Tailwind plugins like DaisyUI can be added to `package.json` and registered with `@plugin` in `styles.css`. |
 | **Explicit version management** | `package.json` records the exact Tailwind version. Upgrading is a single `npm update` command. |
 
 ### Disadvantages Of The npm Route
@@ -518,7 +685,7 @@ The `package.json` and `node_modules` exist **only** to satisfy the IDE. They ar
 
 ### The Bottom Line
 
-The npm route is a **pragmatic compromise**. It introduces a small amount of JavaScript tooling into an otherwise JavaScript-free project, but the payoff is a significantly better development experience inside IntelliJ IDEA. The browser still receives plain HTML and CSS. No JavaScript framework is involved.
+The npm route is a **pragmatic compromise**. It introduces a small amount of JavaScript tooling into an otherwise build-pipeline-free project, but the payoff is a significantly better development experience inside IntelliJ IDEA and access to the Tailwind plugin ecosystem (DaisyUI). The browser receives plain HTML and CSS plus two small progressive-enhancement libraries (HTMX, Alpine.js) loaded from WebJars. No SPA framework or JavaScript build step is involved.
 
 ---
 
@@ -544,12 +711,39 @@ Then rebuild the CSS and verify the application still looks correct:
 ./bin/build-css.sh
 ```
 
+Also verify the class sorter still works (it compiles `styles.css` internally):
+
+```bash
+npm run sort-classes:check
+```
+
 If everything is fine, commit the updated `app.css` and the updated `package.json`. `node_modules` is never committed.
 
 To see exactly what changed, check the Tailwind releases page:
 
 ```text
 https://github.com/tailwindlabs/tailwindcss/releases
+```
+
+### Update DaisyUI
+
+DaisyUI is updated similarly:
+
+```bash
+npm update daisyui
+```
+
+Then rebuild the CSS and verify the application still looks correct:
+
+```bash
+./bin/build-css.sh
+npm run sort-classes:check
+```
+
+Check the DaisyUI changelog for breaking changes:
+
+```text
+https://daisyui.com/docs/changelog/
 ```
 
 ### Update Spring Boot And Kotlin
@@ -610,28 +804,36 @@ After any dependency change, run:
 
 ### Add A New HTML Page
 
-1. Add a Thymeleaf template under `src/main/resources/templates`.
-2. Add a method to a controller in `adapter/in`.
-3. Return the template name from the controller method.
-4. If you used new Tailwind classes, save the template. The Tailwind watcher (if running) or `./bin/build-css.sh` will update `app.css`.
-5. Run `./mvnw test`.
+1. Add a KTE template under `src/main/kte`.
+2. Use `@template.layout(title = "...", content = @` ... `)` to include the shared layout (head, header, footer).
+3. Add a method to a controller in `adapter/in`.
+4. Return the template name from the controller method (without the `.kte` suffix).
+5. If you used new DaisyUI or Tailwind classes, save the template. The Tailwind watcher (if running) or `./bin/build-css.sh` will update `app.css`.
+6. Run `./mvnw test`.
 
 ### Add An HTMX Interaction
 
-1. Add `hx-get`, `hx-post`, or another HTMX attribute to a template.
-2. Add a controller method that returns a Thymeleaf fragment, not a whole page.
-3. Put the fragment in a template such as `wohnungen/fragments.html`.
+1. Add `hx-get`, `hx-post`, or another HTMX attribute to a KTE template.
+2. Add a controller method that returns a KTE template name, not a whole page.
+3. Put the template in `src/main/kte/` (optionally in a subdirectory).
 4. Keep the response HTML small and focused on the element being swapped.
 5. Run `./mvnw test`.
 
-### Add A New Column To `wohnungen`
+### Add An Alpine.js Interaction
 
-1. Create a new migration in `src/main/resources/db/migration`, for example `V3__add_balkon_to_wohnungen.sql`.
+1. Add `x-data` to the element that needs local state (e.g. `x-data="{ open: false }"`).
+2. Use `x-show`, `@click`, `x-bind`, etc. for the interaction. No controller method is needed — Alpine runs entirely in the browser.
+3. Use Alpine for non-sensitive UI state only (toggles, tabs, dropdowns). For security-gated rendering, use JTE `@if` instead.
+4. Run `./mvnw test`.
+
+### Add A New Column To `kunden`
+
+1. Create a new migration in `src/main/resources/db/migration`, for example `V6__add_notiz_to_kunden.sql`.
 2. Add the column with SQL in that migration.
-3. Add the corresponding property to `WohnungRow`.
-4. Update `toDomain()` if the domain model needs the new data.
-5. Update templates or API response DTOs if the new data should be displayed.
-6. Start the app so Flyway applies the migration.
+3. Run `./mvnw -DskipTests compile`. The build migrates a throwaway database and regenerates the jOOQ classes — the new column appears as a typed field on `KUNDEN`.
+4. Use the new field in the repositories (`adapter/out`). If the change *breaks* existing queries (renamed/dropped column), the compiler now points at every affected line.
+5. Update `toDomain()` / presentation models / templates if the new data should be displayed.
+6. Start the app so Flyway applies the migration to the dev database.
 7. Run `./mvnw test`.
 
 ### Add A New Use Case
@@ -659,9 +861,23 @@ npm run build-prod
 
 This is also run automatically during `./mvnw compile` and `./mvnw package`.
 
+### Sort Tailwind Classes In All Templates
+
+```bash
+npm run sort-classes
+```
+
+Reorders `class="..."` attributes in every `.kte` template to the official Tailwind ordering. Safe to run at any time; it only reorders classes and skips dynamic values. See [Sorting Tailwind Classes In Templates](#sorting-tailwind-classes-in-templates) for details.
+
 ---
 
 ## Troubleshooting
+
+### Build Fails With A Docker Or Testcontainers Error
+
+The jOOQ code generator starts a throwaway PostgreSQL container on every build. If the Docker daemon is not running, the build fails in the `generate-sources` phase with an error like `Could not find a valid Docker environment`. Start Docker Desktop and rerun the build.
+
+If you want to see the generated classes, they are in `target/generated-sources/jooq` (regenerated on every build, never edited by hand, not committed to git).
 
 ### `Connection to localhost:5432 refused`
 
@@ -742,13 +958,19 @@ pgrep -f "tailwindcss.*--watch"
 pkill -f "tailwindcss.*--watch"
 ```
 
+### `npm run sort-classes` Fails With A Stylesheet Or Module Error
+
+1. **Stylesheet error:** The sorter compiles `assets/styles.css` internally. If it reports a CSS error, the CSS build is broken too — run `./bin/build-css.sh` to see the same error with more context, fix `styles.css`, then rerun the sorter.
+2. **`Cannot find package 'prettier-plugin-tailwindcss'`:** Run `npm install`. The package is a devDependency.
+3. **Outdated sorter:** After a major Tailwind upgrade, update the sorter too: `npm update prettier-plugin-tailwindcss`.
+
 ### IntelliJ Does Not Show Tailwind Autocompletion
 
 1. Make sure `npm install` has been run and `node_modules/tailwindcss` exists.
 2. Open **Settings → Languages & Frameworks → Style Sheets → Tailwind CSS**.
 3. Make sure the **Language Server** path is set to the bundled server or a globally installed `@tailwindcss/language-server`.
 4. Look at the **bottom status bar** in IntelliJ for the language services widget. Click it and restart the Tailwind CSS language server.
-5. Open a Thymeleaf HTML template and wait a few seconds for the server to initialize.
+5. Open a `.kte` template and wait a few seconds for the server to initialize.
 
 If it still does not work, the issue is likely on the JetBrains side. The `tailwindcss` npm package in `node_modules` is the standard detection signal. As a last resort, try **File → Invalidate Caches → Invalidate and Restart**.
 

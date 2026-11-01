@@ -1,0 +1,15 @@
+INSERT INTO kunden (id, kurzname, name, zs_nummer, adresse, status, besonders_schuetzenswert)
+VALUES ('0d4f5b72-6d5d-4a30-9c4d-1f1a0c2f1001', 'AI', 'Ankundigung Inc', 4582, '40219 Düsseldorf', 'Unterlagenführend',
+        true),
+       ('1a6e7c83-7e6e-4b41-ac5e-2f2b1d3e2002', 'BRAL', 'Bayer', 4480, '56077 Koblenz', 'Ausgeschieden', false),
+       ('2b7f8d94-8f7f-4c52-bd6f-3f3c2e4f3003', 'MUE', 'Müller GmbH', 4521, '80331 München', 'Aktiv', false),
+       ('3c809ea5-9080-4d63-ce70-4f4d3f504004', 'SCHM', 'Schmidt & Partner', 4603, '20095 Hamburg', 'Unterlagenführend',
+        true),
+       ('4d91afb6-a191-4e74-df81-5f5e40515005', 'WEIS', 'Weiss Consulting', 4495, '70173 Stuttgart', 'Aktiv', false),
+       ('5ea2b0c7-b2a2-4f85-e092-6f6f51626006', 'HAN', 'Hansen Logistik', 4678, '28195 Bremen', 'Aktiv', false),
+       ('6fb3c1d8-c3b3-4096-f1a3-7f7062737007', 'KRA', 'Krause Systeme', 4712, '04109 Leipzig', 'Unterlagenführend',
+        true),
+       ('70c4d2e9-d4c4-41a7-82b4-808173848008', 'NOVA', 'Nova Bau GmbH', 4735, '01067 Dresden', 'Aktiv', false),
+       ('81d5e3fa-e5d5-42b8-93c5-919284959009', 'ELB', 'Elbe Services', 4761, '20457 Hamburg', 'Ausgeschieden', false),
+       ('92e6f40b-f6e6-43c9-a4d6-a2a395a6a00a', 'RHE', 'Rhein Energie Partner', 4804, '50667 Köln', 'Unterlagenführend',
+        true);

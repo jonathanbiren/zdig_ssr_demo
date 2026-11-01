@@ -1,0 +1,27 @@
+@import gg.jte.Content
+@param title: String
+@param content: Content
+
+<!DOCTYPE html>
+<html lang="de">
+@template.fragments.head(title = title)
+<div class="flex h-screen w-full flex-col overflow-hidden bg-gray-200">
+	<header class="shrink-0">
+		<nav class="navbar bg-base-100 shadow-sm">
+			<a class="btn btn-ghost text-xl">SFA</a>
+		</nav>
+	</header>
+
+	<main class="min-h-0 flex-1 overflow-hidden">
+		${content}
+	</main>
+
+	<footer class="shrink-0">
+		<div class="footer bg-neutral p-10 text-neutral-content sm:footer-horizontal">
+			<nav>
+				ZDig BW
+			</nav>
+		</div>
+	</footer>
+</div>
+</html>
