@@ -1,5 +1,6 @@
 # === Spring/Maven ===
 /target/
+/jte-classes/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

@@ -13,11 +13,12 @@ import java.util.*
 private object Views {
 	//pages
 	const val INDEX = "pages/kunden/index"
-	const val KUNDEN_EDIT = "pages/kunden/kundeEditieren"
+	const val KUNDEN_EDIT = "pages/kunden/edit/index"
 
 	//HTMX fragments
 	const val FILTERED_LIST = "pages/kunden/fragments/clientListWithDetailView"
 	const val KUNDEN_DETAILS = "pages/kunden/fragments/kundenDetail"
+	const val ROW_DELETION_UPDATE = "pages/kunden/table/partials/kundenAnzahl"
 	const val ERROR = "pages/kunden/fragments/error"
 }
 
@@ -49,10 +50,11 @@ class KundenController(
 	//region HTMX endpoints
 	@HxRequest
 	@DeleteMapping("/kunden/{id}/delete")
-	@ResponseBody
-	fun kundenLoeschen(@PathVariable id: UUID): String {
+	fun kundenLoeschen(@PathVariable id: UUID, model: Model): String {
 		kundenRepository.deleteClient(id)
-		return ""
+		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
+		model.addAttribute("kundenAnzahl", totalAmountOfClientsLeft)
+		return Views.ROW_DELETION_UPDATE
 	}
 
 	@HxRequest
