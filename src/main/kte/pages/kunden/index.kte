@@ -22,7 +22,7 @@
 				       name="sucheingabe"
 				       placeholder="z. B. 123"
 				       class="input-bordered input w-full"
-				       hx-trigger="input changed delay:300ms"
+				       hx-trigger="input changed delay:150ms"
 				       hx-get="/kunden"
 				       hx-target="#kundentabelleContainer"
 				       hx-swap="innerHTML"
@@ -34,7 +34,7 @@
 
 		<div id="kundentabelleContainer"
 		     class="min-h-0 flex-1 overflow-auto rounded-box border border-base-300 bg-base-100 shadow-sm">
-			@template.pages.kunden.fragments.clientListWithDetailView(kundenListe = kundenListe)
+			@template.pages.kunden.components.clientListWithDetailView(kundenListe = kundenListe)
 		</div>
 	</section>
 `)

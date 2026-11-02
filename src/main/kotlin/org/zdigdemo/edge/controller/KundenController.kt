@@ -16,10 +16,10 @@ private object kundenViews {
 	const val KUNDEN_EDIT = "pages/kunden/edit/index"
 
 	//HTMX fragments
-	const val FILTERED_LIST = "pages/kunden/fragments/clientListWithDetailView"
-	const val KUNDEN_DETAILS = "pages/kunden/fragments/kundenDetail"
+	const val FILTERED_LIST = "pages/kunden/components/clientListWithDetailView"
+	const val KUNDEN_DETAILS = "pages/kunden/components/kundenDetail"
 	const val ROW_DELETION_UPDATE = "pages/kunden/table/partials/kundenAnzahl"
-	const val ERROR = "pages/kunden/fragments/error"
+	const val ERROR = "pages/kunden/components/error"
 }
 
 @Controller

@@ -73,7 +73,7 @@ class KundenRepository(
 // by the database itself. DAO methods return generated POJOs, DSL queries return Records —
 // hence one mapper per generated type.
 data class KundeViewModel(
-	var id: UUID,
+	var id: String,
 	var kurzname: String,
 	var name: String,
 	var zsNummer: Long,
@@ -84,7 +84,7 @@ data class KundeViewModel(
 
 //Kunden is DAO type
 fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
-	id = id!!,
+	id = id.toString(),
 	kurzname = kurzname!!,
 	name = name!!,
 	zsNummer = zsNummer!!,
@@ -95,7 +95,7 @@ fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
 
 //KundenRecord ist DSLContext type
 fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
-	id = id!!,
+	id = id.toString(),
 	kurzname = kurzname!!,
 	name = name!!,
 	zsNummer = zsNummer!!,
