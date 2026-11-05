@@ -1,5 +1,6 @@
 @import org.zdigdemo.edge.repositories.KundeViewModel
 @param kundenListe: List<KundeViewModel>
+<%--You can compute values from the data which is passed into the template --%>
 !{val anzahlElementeInKundenliste = kundenListe.size}
 
 @template.layout.layout(title = "SFA | Kunde", content = @`

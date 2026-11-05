@@ -105,7 +105,7 @@
 		<dependency>
 			<groupId>io.github.wimdeblauwe</groupId>
 			<artifactId>htmx-spring-boot</artifactId>
-			<version>5.1.0</version>
+			<version>6.0.1</version>
 		</dependency>
 		<!-- JTE (Java Template Engine) - type-safe template engine for Kotlin (.kte files) -->
 		<dependency>
@@ -123,13 +123,13 @@
 		<dependency>
 			<groupId>org.webjars.npm</groupId>
 			<artifactId>htmx.org</artifactId>
-			<version>4.0.0</version>
+			<version>4.0.1</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.webjars.npm</groupId>
 			<artifactId>alpinejs</artifactId>
-			<version>3.16.3</version>
+			<version>3.17.4</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
