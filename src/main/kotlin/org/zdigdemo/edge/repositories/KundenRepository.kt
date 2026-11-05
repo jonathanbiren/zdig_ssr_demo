@@ -65,7 +65,6 @@ class KundenRepository(
 }
 
 
-
 //region Mappers
 // jOOQ's KotlinGenerator types every column as nullable, because any SQL expression can in
 // principle yield NULL. All columns of kunden and verpflichtungen are declared NOT NULL in

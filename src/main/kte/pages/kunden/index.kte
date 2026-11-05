@@ -1,5 +1,6 @@
 @import org.zdigdemo.edge.repositories.KundeViewModel
 @param kundenListe: List<KundeViewModel>
+!{val anzahlElementeInKundenliste = kundenListe.size}
 
 @template.layout.layout(title = "SFA | Kunde", content = @`
 	<section
@@ -8,7 +9,7 @@
 		<div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
 			<div class="flex items-center gap-3">
 				<span class="font-medium">Kundenanzahl</span>
-				<span id="kundenanzahlContainer" class="badge badge-lg badge-primary">${kundenListe.size}</span>
+				<span id="kundenanzahlContainer" class="badge badge-lg badge-primary">${anzahlElementeInKundenliste}</span>
 			</div>
 
 

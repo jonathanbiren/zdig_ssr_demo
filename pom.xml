@@ -30,7 +30,7 @@
 	<properties>
 		<java.version>25</java.version>
 		<kotlin.version>2.4.21</kotlin.version>
-		<jte.version>3.2.4</jte.version>
+		<jte.version>3.2.5</jte.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -111,12 +111,12 @@
 		<dependency>
 			<groupId>gg.jte</groupId>
 			<artifactId>jte-spring-boot-starter-4</artifactId>
-			<version>${jte.version}</version>
+			<version>3.2.5</version>
 		</dependency>
 		<dependency>
 			<groupId>gg.jte</groupId>
 			<artifactId>jte-kotlin</artifactId>
-			<version>${jte.version}</version>
+			<version>3.2.5</version>
 		</dependency>
 		<!--        Webjars will be served as static resources and you can include them in your templates -->
 		<!--        using a specific path like <script src="/webjars/htmx.org/2.0.6/dist/htmx.min.js"></script>-->

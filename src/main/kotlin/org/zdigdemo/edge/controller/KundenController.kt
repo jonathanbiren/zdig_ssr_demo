@@ -9,18 +9,6 @@ import org.zdigdemo.edge.repositories.KundeViewModel
 import org.zdigdemo.edge.repositories.KundenRepository
 import java.util.*
 
-//Object for reducing the visual noise of Spring Boot not being able to resolve the JTE templates
-private object kundenViews {
-	//pages
-	const val INDEX = "pages/kunden/index"
-	const val KUNDEN_EDIT = "pages/kunden/edit/index"
-
-	//HTMX fragments
-	const val FILTERED_LIST = "pages/kunden/components/clientListWithDetailView"
-	const val KUNDEN_DETAILS = "pages/kunden/components/kundenDetail"
-	const val ROW_DELETION_UPDATE = "pages/kunden/table/partials/kundenAnzahl"
-	const val ERROR = "pages/kunden/components/error"
-}
 
 @Controller
 class KundenController(
@@ -33,7 +21,7 @@ class KundenController(
 		val listeAllerKunden: List<KundeViewModel> =
 			kundenRepository.getAllClients()
 		model.addAttribute("kundenListe", listeAllerKunden)
-		return kundenViews.INDEX
+		return "pages/kunden/index.kte"
 	}
 
 	@GetMapping("/kunden/{id}/edit")
@@ -41,9 +29,9 @@ class KundenController(
 		@PathVariable id: UUID,
 		model: Model
 	): String {
-		val kunde = kundenRepository.getClient(id) ?: return kundenViews.ERROR
+		val kunde = kundenRepository.getClient(id) ?: return "pages/kunden/table/partials/error.kte"
 		model.addAttribute("kunde", kunde)
-		return kundenViews.KUNDEN_EDIT
+		return "pages/kunden/edit/index.kte"
 	}
 	//endregion
 
@@ -54,7 +42,7 @@ class KundenController(
 		kundenRepository.deleteClient(id)
 		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
 		model.addAttribute("kundenAnzahl", totalAmountOfClientsLeft)
-		return kundenViews.ROW_DELETION_UPDATE
+		return "pages/kunden/table/partials/kundenAnzahl.kte"
 	}
 
 	@HxRequest
@@ -72,23 +60,6 @@ class KundenController(
 				.getAllClientsFittingSearchterm(sucheingabe)
 			model.addAttribute("kundenListe", listeGefilterterKunden)
 		}
-		return kundenViews.FILTERED_LIST
+		return "pages/kunden/components/clientListWithDetailView.kte"
 	}
-
-//	@HxRequest
-//	@GetMapping("/kunden/{id}/detail")
-//	fun kundenDetail(
-//		@PathVariable id: UUID,
-//		model: Model
-//	): String {
-//		val kundeMitVerpflichtungen =
-//			kundenRepository.getKundeMitVerpflichtungen(id) ?: return Views.ERROR
-//		model.addAttribute("kunde", kundeMitVerpflichtungen.kunde.toPresentationModel())
-//		model.addAttribute(
-//			"verpflichtungen",
-//			kundeMitVerpflichtungen.verpflichtungen.map { it.toPresentationModel() }
-//		)
-//		return Views.KUNDEN_DETAILS
-//	}
-	//endregion
 }
