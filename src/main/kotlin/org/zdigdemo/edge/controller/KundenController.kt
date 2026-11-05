@@ -1,65 +1,51 @@
 package org.zdigdemo.edge.controller
 
-
+import gg.jte.generated.precompiled.Templates
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Controller
-import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
-import org.zdigdemo.edge.repositories.KundeViewModel
 import org.zdigdemo.edge.repositories.KundenRepository
 import java.util.*
 
-
 @Controller
+@ResponseBody
+@RequestMapping(produces = [MediaType.TEXT_HTML_VALUE])
 class KundenController(
-	val kundenRepository: KundenRepository,
+	private val kundenRepository: KundenRepository,
+	private val templates: Templates,
 ) {
 
 	//region Full Page Endpoints
 	@GetMapping("/")
-	fun kundenMainPage(model: Model): String {
-		val listeAllerKunden: List<KundeViewModel> =
-			kundenRepository.getAllClients()
-		model.addAttribute("kundenListe", listeAllerKunden)
-		return "pages/kunden/index.kte"
-	}
+	fun kundenMainPage(): String =
+		templates.pagesKundenIndex(kundenRepository.getAllClients()).render()
 
 	@GetMapping("/kunden/{id}/edit")
-	fun kundenEditieren(
-		@PathVariable id: UUID,
-		model: Model
-	): String {
-		val kunde = kundenRepository.getClient(id) ?: return "pages/kunden/table/partials/error.kte"
-		model.addAttribute("kunde", kunde)
-		return "pages/kunden/edit/index.kte"
+	fun kundenEditieren(@PathVariable id: UUID): String {
+		val kunde = kundenRepository.getClient(id)
+			?: return templates.pagesKundenTablePartialsError().render()
+		return templates.pagesKundenEditIndex(kunde).render()
 	}
 	//endregion
 
 	//region HTMX endpoints
 	@HxRequest
 	@DeleteMapping("/kunden/{id}/delete")
-	fun kundenLoeschen(@PathVariable id: UUID, model: Model): String {
+	fun kundenLoeschen(@PathVariable id: UUID): String {
 		kundenRepository.deleteClient(id)
 		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
-		model.addAttribute("kundenAnzahl", totalAmountOfClientsLeft)
-		return "pages/kunden/table/partials/kundenAnzahl.kte"
+		return templates.pagesKundenTablePartialsKundenAnzahl(totalAmountOfClientsLeft).render()
 	}
 
 	@HxRequest
 	@GetMapping("/kunden")
-	fun generiereKundenListeGefiltert(
-		@RequestParam sucheingabe: String?,
-		model: Model
-	): String {
-		if (sucheingabe.isNullOrEmpty()) {
-			val listeAllerKunden = kundenRepository
-				.getAllClients()
-			model.addAttribute("kundenListe", listeAllerKunden)
+	fun generiereKundenListeGefiltert(@RequestParam sucheingabe: String?): String {
+		val kundenListe = if (sucheingabe.isNullOrEmpty()) {
+			kundenRepository.getAllClients()
 		} else {
-			val listeGefilterterKunden = kundenRepository
-				.getAllClientsFittingSearchterm(sucheingabe)
-			model.addAttribute("kundenListe", listeGefilterterKunden)
+			kundenRepository.getAllClientsFittingSearchterm(sucheingabe)
 		}
-		return "pages/kunden/components/clientListWithDetailView.kte"
+		return templates.pagesKundenComponentsClientListWithDetailView(kundenListe).render()
 	}
 }

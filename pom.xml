@@ -31,6 +31,7 @@
 		<java.version>25</java.version>
 		<kotlin.version>2.4.21</kotlin.version>
 		<jte.version>3.2.5</jte.version>
+		<htmx.version>4.0.1</htmx.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -45,11 +46,6 @@
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-stdlib</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>tools.jackson.module</groupId>
-			<artifactId>jackson-module-kotlin</artifactId>
-		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-jooq</artifactId>
@@ -103,6 +99,15 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-docker-compose</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>io.github.wimdeblauwe</groupId>
 			<artifactId>htmx-spring-boot</artifactId>
 			<version>6.0.1</version>
@@ -111,19 +116,31 @@
 		<dependency>
 			<groupId>gg.jte</groupId>
 			<artifactId>jte-spring-boot-starter-4</artifactId>
-			<version>3.2.5</version>
+			<version>${jte.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>gg.jte</groupId>
 			<artifactId>jte-kotlin</artifactId>
-			<version>3.2.5</version>
+			<version>${jte.version}</version>
+		</dependency>
+		<!--		jte-models enables the generation of components that you can use in Spring
+		MVC-->
+		<dependency>
+			<groupId>gg.jte</groupId>
+			<artifactId>jte-runtime</artifactId>
+			<version>${jte.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>gg.jte</groupId>
+			<artifactId>jte-models-runtime</artifactId>
+			<version>${jte.version}</version>
 		</dependency>
 		<!--        Webjars will be served as static resources and you can include them in your templates -->
 		<!--        using a specific path like <script src="/webjars/htmx.org/2.0.6/dist/htmx.min.js"></script>-->
 		<dependency>
 			<groupId>org.webjars.npm</groupId>
 			<artifactId>htmx.org</artifactId>
-			<version>4.0.1</version>
+			<version>${htmx.version}</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
@@ -131,15 +148,6 @@
 			<artifactId>alpinejs</artifactId>
 			<version>3.17.4</version>
 			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-docker-compose</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 	</dependencies>
 
@@ -344,8 +352,16 @@
 				<version>${jte.version}</version>
 				<configuration>
 					<sourceDirectory>${project.basedir}/src/main/kte</sourceDirectory>
+					<targetDirectory>${project.build.directory}/generated-sources/jte</targetDirectory>
 					<contentType>Html</contentType>
-					<targetDirectory/>
+					<extensions>
+						<extension>
+							<className>gg.jte.models.generator.ModelExtension</className>
+							<settings>
+								<language>Kotlin</language>
+							</settings>
+						</extension>
+					</extensions>
 				</configuration>
 				<executions>
 					<execution>
@@ -355,8 +371,14 @@
 						</goals>
 					</execution>
 				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>gg.jte</groupId>
+						<artifactId>jte-models</artifactId>
+						<version>${jte.version}</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 		</plugins>
 	</build>
-
 </project>
