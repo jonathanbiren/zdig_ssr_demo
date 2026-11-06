@@ -39,7 +39,8 @@
 					</a>
 					<button class="btn btn-neutral btn-sm"
 					        hx-trigger="click"
-					        hx-delete="/kunden/${kunde.id}/delete"
+					        hx-confirm="Sind Sie sich sicher, dass Sie den Kunden löschen wollen?"
+					        hx-delete="/kunden/${kunde.id}"
 					>
 						Delete
 					</button>

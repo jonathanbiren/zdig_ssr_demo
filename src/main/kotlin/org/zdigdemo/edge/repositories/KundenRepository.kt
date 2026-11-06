@@ -72,13 +72,13 @@ class KundenRepository(
 // by the database itself. DAO methods return generated POJOs, DSL queries return Records —
 // hence one mapper per generated type.
 data class KundeViewModel(
-	var id: String,
-	var kurzname: String,
-	var name: String,
-	var zsNummer: Long,
-	var adresse: String,
-	var status: String,
-	var istBesondersSchuetzenswert: Boolean,
+	val id: String,
+	val kurzname: String,
+	val name: String,
+	val zsNummer: Long,
+	val adresse: String,
+	val status: String,
+	val istBesondersSchuetzenswert: Boolean,
 ) {}
 
 //Kunden is DAO type

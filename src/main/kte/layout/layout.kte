@@ -7,7 +7,7 @@
 @template.components.head(title = title)
 <div class="flex h-screen w-full flex-col overflow-hidden bg-gray-200">
 	<header class="shrink-0">
-		<nav class="navbar bg-base-100 shadow-sm">
+		<nav class="navbar bg-base-100 shadow-sm" hx-boost="true">
 			<a class="btn btn-ghost text-xl" href="/">Kunden</a>
 			<a class="btn btn-ghost text-xl" href="/verpflichtungen">Verpflichtungen</a>
 			<a class="btn btn-ghost text-xl" href="/personen">Personen</a>

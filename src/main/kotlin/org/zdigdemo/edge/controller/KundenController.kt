@@ -31,7 +31,7 @@ class KundenController(
 
 	//region HTMX endpoints
 	@HxRequest
-	@DeleteMapping("/kunden/{id}/delete")
+	@DeleteMapping("/kunden/{id}")
 	fun kundenLoeschen(@PathVariable id: UUID): String {
 		kundenRepository.deleteClient(id)
 		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
@@ -40,7 +40,7 @@ class KundenController(
 
 	@HxRequest
 	@GetMapping("/kunden")
-	fun generiereKundenListeGefiltert(@RequestParam sucheingabe: String?): String {
+	fun generiereKundenListeGefiltert(@RequestParam(required = false) sucheingabe: String?): String {
 		val kundenListe = if (sucheingabe.isNullOrEmpty()) {
 			kundenRepository.getAllClients()
 		} else {

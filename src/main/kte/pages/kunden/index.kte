@@ -10,7 +10,8 @@
 		<div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
 			<div class="flex items-center gap-3">
 				<span class="font-medium">Kundenanzahl</span>
-				<span id="kundenanzahlContainer" class="badge badge-lg badge-primary">${anzahlElementeInKundenliste}</span>
+				<span id="kundenanzahlContainer"
+				      class="badge badge-lg badge-primary">${anzahlElementeInKundenliste}</span>
 			</div>
 
 
@@ -20,7 +21,7 @@
             </span>
 				<!--So hx-sync="this:replace" reads literally as: "sync against myself; when I issue a new request while one of-->
 				<!--mine is still in flight, abort the in-flight one and replace it with the new one."-->
-				<input type="text"
+				<input type="search"
 				       name="sucheingabe"
 				       placeholder="z. B. 123"
 				       class="input-bordered input w-full"
