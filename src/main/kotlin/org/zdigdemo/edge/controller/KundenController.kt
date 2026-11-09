@@ -29,6 +29,10 @@ class KundenController(
 	}
 	//endregion
 
+	@PatchMapping("/kunden/{id}/save")
+	fun kundenSpeichern(@PathVariable id: UUID): String {
+		val kunde = kundenRepository.saveClient(id)
+	}
 	//region HTMX endpoints
 	@HxRequest
 	@DeleteMapping("/kunden/{id}")

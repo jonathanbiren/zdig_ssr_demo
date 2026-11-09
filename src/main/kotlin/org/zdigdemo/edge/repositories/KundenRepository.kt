@@ -62,6 +62,17 @@ class KundenRepository(
 			.fetch()
 			.map { kundenRecord -> kundenRecord.toViewModel() }
 	}
+
+	// update() writes all columns of the POJO into the row with the same primary key
+	// (UPDATE kunden SET ... WHERE id = ?). If that id does not exist, jOOQ silently updates
+	// 0 rows, hence the explicit existence check.
+	fun saveClient(client: Kunden): KundeViewModel {
+		val id = requireNotNull(client.id) { "Kunde ohne id kann nicht aktualisiert werden" }
+		if (!kundenDao.existsById(id)) throw NoSuchElementException("Kunde $id existiert nicht")
+		kundenDao.update(client)
+		return client.toViewModel()
+	}
+	//endregion
 }
 
 
