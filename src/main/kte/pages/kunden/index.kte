@@ -1,5 +1,8 @@
 @import org.zdigdemo.edge.repositories.KundeViewModel
+@import org.zdigdemo.edge.repositories.SortData
+
 @param kundenListe: List<KundeViewModel>
+@param sortierInformation: SortData
 <%--You can compute values from the data which is passed into the template --%>
 !{val anzahlElementeInKundenliste = kundenListe.size}
 
@@ -21,15 +24,17 @@
             </span>
 				<!--So hx-sync="this:replace" reads literally as: "sync against myself; when I issue a new request while one of-->
 				<!--mine is still in flight, abort the in-flight one and replace it with the new one."-->
-				<input type="search"
-				       name="sucheingabe"
-				       placeholder="z. B. 123"
-				       class="input-bordered input w-full"
-				       hx-trigger="input changed delay:150ms"
-				       hx-get="/kunden"
-				       hx-target="#kundentabelleContainer"
-				       hx-swap="innerHTML"
-				       hx-sync="this:replace"
+				<input
+						id="searchInput"
+						type="search"
+						name="sucheingabe"
+						placeholder="z. B. 123"
+						class="input-bordered input w-full"
+						hx-trigger="input changed delay:150ms"
+						hx-get="/kunden"
+						hx-target="#kundentabelleContainer"
+						hx-swap="innerHTML"
+						hx-sync="this:replace"
 				>
 			</label>
 		</div>
@@ -37,7 +42,7 @@
 
 		<div id="kundentabelleContainer"
 		     class="min-h-0 flex-1 overflow-auto rounded-box border border-base-300 bg-base-100 shadow-sm">
-			@template.pages.kunden.components.clientListWithDetailView(kundenListe = kundenListe)
+			@template.pages.kunden.components.clientListWithDetailView(kundenListe = kundenListe, sortierInformation = sortierInformation)
 		</div>
 	</section>
 `)

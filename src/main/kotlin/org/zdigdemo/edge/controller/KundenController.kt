@@ -6,6 +6,9 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import org.zdigdemo.edge.repositories.KundenRepository
+import org.zdigdemo.edge.repositories.KundenSortColumn
+import org.zdigdemo.edge.repositories.SortData
+import org.zdigdemo.edge.repositories.SortDirection
 import java.util.*
 
 @Controller
@@ -19,7 +22,7 @@ class KundenController(
 	//region Full Page Endpoints
 	@GetMapping("/")
 	fun kundenMainPage(): String =
-		templates.pagesKundenIndex(kundenRepository.getAllClients()).render()
+		templates.pagesKundenIndex(kundenRepository.getAllClients(), SortData()).render()
 
 	@GetMapping("/kunden/{id}/edit")
 	fun kundenEditieren(@PathVariable id: UUID): String {
@@ -40,12 +43,27 @@ class KundenController(
 
 	@HxRequest
 	@GetMapping("/kunden")
-	fun generiereKundenListeGefiltert(@RequestParam(required = false) sucheingabe: String?): String {
-		val kundenListe = if (sucheingabe.isNullOrEmpty()) {
-			kundenRepository.getAllClients()
-		} else {
-			kundenRepository.getAllClientsFittingSearchterm(sucheingabe)
-		}
-		return templates.pagesKundenComponentsClientListWithDetailView(kundenListe).render()
+	fun generiereKundenListeSortiert(
+		@RequestParam(required = false) sortColumn: String?,
+		@RequestParam(required = false) sortDirection: String?,
+		@RequestParam(required = false) sucheingabe: String?
+	): String {
+		//The repository returns List<KundeViewModel>. The full template model is constructed in the controller
+		//It is the KundenSortColumn enmum (allowList) as well as the SortDirection, which takes care of the input validation
+		val sortierInformation =
+			SortData(
+				sortColumn = KundenSortColumn.fromRequestName(sortColumn),
+				sortDirection = SortDirection.create(sortDirection)
+			)
+		val kundenListe = kundenRepository.getClients(sortierInformation, sucheingabe)
+
+		return templates.pagesKundenComponentsClientListWithDetailView(
+			kundenListe = kundenListe,
+			sortierInformation = sortierInformation
+		).render()
+
 	}
 }
+
+
+
