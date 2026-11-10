@@ -13,7 +13,9 @@
 				<span id="kundenanzahlContainer"
 				      class="badge badge-lg badge-primary">${anzahlElementeInKundenliste}</span>
 			</div>
-
+			<a class="btn btn-primary" href="/kunden/create">
+				Neuer Kunde
+			</a>
 
 			<label class="form-control w-full max-w-xs">
             <span class="label py-1">

@@ -1,0 +1,7 @@
+@param isValid: Boolean
+
+@if(isValid)
+    <span class="text-success">ZsNr ist valide</span>
+@else
+    <span class="text-error" data-invalid="true">ZsNr ist nicht valide</span>
+@endif

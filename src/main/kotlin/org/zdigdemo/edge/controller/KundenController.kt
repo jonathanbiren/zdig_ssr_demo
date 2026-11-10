@@ -3,8 +3,10 @@ package org.zdigdemo.edge.controller
 import gg.jte.generated.precompiled.Templates
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
+import org.zdigdemo.edge.repositories.KundeViewModel
 import org.zdigdemo.edge.repositories.KundenRepository
 import java.util.*
 
@@ -25,13 +27,29 @@ class KundenController(
 	fun kundenEditieren(@PathVariable id: UUID): String {
 		val kunde = kundenRepository.getClient(id)
 			?: return templates.pagesKundenTablePartialsError().render()
-		return templates.pagesKundenEditIndex(kunde).render()
+		return templates.pagesKundenFormsEditForm(kunde).render()
+	}
+
+	@GetMapping("/kunden/create")
+	fun kundenAnlegen(): String {
+		return templates.pagesKundenFormsEditForm(KundeViewModel(
+            id = UUID.randomUUID().toString(),
+            kurzname = "",
+            name = "",
+			zsNummer = 0,
+            adresse = "",
+            status = "",
+            istBesondersSchuetzenswert = false
+        )).render()
 	}
 	//endregion
 
 	@PatchMapping("/kunden/{id}/save")
-	fun kundenSpeichern(@PathVariable id: UUID): String {
-		val kunde = kundenRepository.saveClient(id)
+	fun kundenSpeichern(kunde: KundeViewModel): ResponseEntity<Void> {
+		kundenRepository.editExistingClient(kunde)
+		return ResponseEntity.ok()
+			.header("HX-Location", "/verpflichtungen")
+			.build()
 	}
 	//region HTMX endpoints
 	@HxRequest

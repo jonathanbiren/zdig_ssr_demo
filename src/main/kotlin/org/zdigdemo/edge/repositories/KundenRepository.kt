@@ -24,55 +24,62 @@ import java.util.*
 @Transactional
 @Repository
 class KundenRepository(
-	private val dsl: DSLContext,
-	private val kundenDao: KundenDao,
-	private val clientSearchProperties: ClientSearchProperties,
+    private val dsl: DSLContext,
+    private val kundenDao: KundenDao,
+    private val clientSearchProperties: ClientSearchProperties,
 ) {
 
-	//region DAO Methods
-	fun getAllClients(): List<KundeViewModel> {
-		return kundenDao.findAll().map { kundeDao -> kundeDao.toViewModel() }
-	}
+    //region DAO Methods
+    fun getAllClients(): List<KundeViewModel> {
+        return kundenDao.findAll().map { kundeDao -> kundeDao.toViewModel() }
+    }
 
-	fun getClient(id: UUID): KundeViewModel? =
-		kundenDao.findById(id)?.toViewModel()
+    fun getClient(id: UUID): KundeViewModel? =
+        kundenDao.findById(id)?.toViewModel()
 
-	//* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
-	//* ON DELETE CASCADE.
-	fun deleteClient(id: UUID) = kundenDao.deleteById(id)
-	//endregion
+    //* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
+    //* ON DELETE CASCADE.
+    fun deleteClient(id: UUID) = kundenDao.deleteById(id)
+    //endregion
 
-	private val KUNDEN_SUCHTEXT: Field<String?> = DSL.concat(
-		KUNDEN.KURZNAME, DSL.inline(" "),
-		KUNDEN.NAME, DSL.inline(" "),
-		KUNDEN.ZS_NUMMER.cast(String::class.java), DSL.inline(" "),
-		KUNDEN.ADRESSE, DSL.inline(" "),
-		KUNDEN.STATUS
-	)
+    private val KUNDEN_SUCHTEXT: Field<String?> = DSL.concat(
+        KUNDEN.KURZNAME, DSL.inline(" "),
+        KUNDEN.NAME, DSL.inline(" "),
+        KUNDEN.ZS_NUMMER.cast(String::class.java), DSL.inline(" "),
+        KUNDEN.ADRESSE, DSL.inline(" "),
+        KUNDEN.STATUS
+    )
 
-	// Custom Query using Postgres specific word_similarity function
-	fun getAllClientsFittingSearchterm(searchTerm: String): List<KundeViewModel> {
-		// wordSimilarity is the pg_trgm function word_similarity(), reverse-engineered
-		// by the code generator into a typed Kotlin function. No string SQL anywhere.
-		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
-		return dsl.selectFrom(KUNDEN)
-			.where(similarity.ge(clientSearchProperties.minimumSimilarity.toFloat()))
-			.orderBy(similarity.desc())
-			.limit(clientSearchProperties.maxAmountOfSearchResults)
-			.fetch()
-			.map { kundenRecord -> kundenRecord.toViewModel() }
-	}
+    // Custom Query using Postgres specific word_similarity function
+    fun getAllClientsFittingSearchterm(searchTerm: String): List<KundeViewModel> {
+        // wordSimilarity is the pg_trgm function word_similarity(), reverse-engineered
+        // by the code generator into a typed Kotlin function. No string SQL anywhere.
+        val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
+        return dsl.selectFrom(KUNDEN)
+            .where(similarity.ge(clientSearchProperties.minimumSimilarity.toFloat()))
+            .orderBy(similarity.desc())
+            .limit(clientSearchProperties.maxAmountOfSearchResults)
+            .fetch()
+            .map { kundenRecord -> kundenRecord.toViewModel() }
+    }
 
-	// update() writes all columns of the POJO into the row with the same primary key
-	// (UPDATE kunden SET ... WHERE id = ?). If that id does not exist, jOOQ silently updates
-	// 0 rows, hence the explicit existence check.
-	fun saveClient(client: Kunden): KundeViewModel {
-		val id = requireNotNull(client.id) { "Kunde ohne id kann nicht aktualisiert werden" }
-		if (!kundenDao.existsById(id)) throw NoSuchElementException("Kunde $id existiert nicht")
-		kundenDao.update(client)
-		return client.toViewModel()
-	}
-	//endregion
+    // update() writes all columns of the POJO into the row with the same primary key
+    // (UPDATE kunden SET ... WHERE id = ?). If that id does not exist, jOOQ silently updates
+    // 0 rows, hence the explicit existence check.
+    fun editExistingClient(kunde: KundeViewModel): KundeViewModel {
+        val kundePojo = Kunden(
+            id = UUID.fromString(kunde.id),
+            name = kunde.name,
+            kurzname = kunde.kurzname,
+            zsNummer = kunde.zsNummer,
+            adresse = kunde.adresse,
+            status = kunde.status,
+            besondersSchuetzenswert = kunde.istBesondersSchuetzenswert,
+        )
+        kundenDao.update(kundePojo)
+        return kunde
+    }
+    //endregion
 }
 
 
@@ -83,34 +90,34 @@ class KundenRepository(
 // by the database itself. DAO methods return generated POJOs, DSL queries return Records —
 // hence one mapper per generated type.
 data class KundeViewModel(
-	val id: String,
-	val kurzname: String,
-	val name: String,
-	val zsNummer: Long,
-	val adresse: String,
-	val status: String,
-	val istBesondersSchuetzenswert: Boolean,
+    val id: String,
+    val kurzname: String,
+    val name: String,
+    val zsNummer: Long,
+    val adresse: String,
+    val status: String,
+    val istBesondersSchuetzenswert: Boolean,
 ) {}
 
 //Kunden is DAO type
 fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
-	id = id.toString(),
-	kurzname = kurzname!!,
-	name = name!!,
-	zsNummer = zsNummer!!,
-	adresse = adresse!!,
-	status = status!!,
-	istBesondersSchuetzenswert = besondersSchuetzenswert!!
+    id = id.toString(),
+    kurzname = kurzname!!,
+    name = name!!,
+    zsNummer = zsNummer!!,
+    adresse = adresse!!,
+    status = status!!,
+    istBesondersSchuetzenswert = besondersSchuetzenswert!!
 )
 
 //KundenRecord ist DSLContext type
 fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
-	id = id.toString(),
-	kurzname = kurzname!!,
-	name = name!!,
-	zsNummer = zsNummer!!,
-	adresse = adresse!!,
-	status = status!!,
-	istBesondersSchuetzenswert = besondersSchuetzenswert!!
+    id = id.toString(),
+    kurzname = kurzname!!,
+    name = name!!,
+    zsNummer = zsNummer!!,
+    adresse = adresse!!,
+    status = status!!,
+    istBesondersSchuetzenswert = besondersSchuetzenswert!!
 )
 //endregion
