@@ -1,0 +1,11 @@
+@import org.zdigdemo.edge.repositories.VerpflichtungViewModel
+
+@param verpflichtungen: List<VerpflichtungViewModel>
+
+<div class="flex flex-col gap-4 p-4">
+	<ul>
+		@for(verpflichtung in verpflichtungen)
+			<li>${verpflichtung.bezeichnung}</li>
+		@endfor
+	</ul>
+</div>

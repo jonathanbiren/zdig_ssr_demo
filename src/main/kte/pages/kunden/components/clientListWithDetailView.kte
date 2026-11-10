@@ -43,11 +43,13 @@
 	@for(kunde in kundenListe)
 		<tr
 				class="cursor-pointer row-hover"
+				@click="detailViewOpen = true"
 				hx-trigger="click"
 				hx-get="/kunden/${kunde.id}/detail"
-				hx-target="#side-panel-content"
+				hx-target="#detail-view-content"
 				hx-swap="innerHTML"
 				hx-sync="this:replace"
+				hx-indicator="#kunden-detail-loading"
 		>
 			<td>${kunde.kurzname}</td>
 			<td>${kunde.name}</td>
@@ -56,10 +58,10 @@
 			<td>${kunde.status}</td>
 			<td>${kunde.istBesondersSchuetzenswert}</td>
 			<td @click.stop>
-				<a class="btn btn-neutral btn-sm"
+				<button class="btn btn-neutral btn-sm"
 				   href="/kunden/${kunde.id}/edit">
 					Edit
-				</a>
+				</button>
 				<button class="btn btn-neutral btn-sm"
 				        hx-trigger="click"
 				        hx-confirm="Sind Sie sich sicher, dass Sie den Kunden löschen wollen?"

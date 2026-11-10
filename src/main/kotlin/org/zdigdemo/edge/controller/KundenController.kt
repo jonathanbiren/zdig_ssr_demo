@@ -9,6 +9,7 @@ import org.zdigdemo.edge.repositories.KundenRepository
 import org.zdigdemo.edge.repositories.KundenSortColumn
 import org.zdigdemo.edge.repositories.SortData
 import org.zdigdemo.edge.repositories.SortDirection
+import org.zdigdemo.edge.repositories.VerpflichtungRepository
 import java.util.*
 
 @Controller
@@ -16,6 +17,7 @@ import java.util.*
 @RequestMapping(produces = [MediaType.TEXT_HTML_VALUE])
 class KundenController(
 	private val kundenRepository: KundenRepository,
+	private val verpflichtungenRepository: VerpflichtungRepository,
 	private val templates: Templates,
 ) {
 
@@ -33,14 +35,6 @@ class KundenController(
 	//endregion
 
 	//region HTMX endpoints
-	@HxRequest
-	@DeleteMapping("/kunden/{id}")
-	fun kundenLoeschen(@PathVariable id: UUID): String {
-		kundenRepository.deleteClient(id)
-		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
-		return templates.pagesKundenTablePartialsKundenAnzahl(totalAmountOfClientsLeft).render()
-	}
-
 	@HxRequest
 	@GetMapping("/kunden")
 	fun generiereKundenListeSortiert(
@@ -63,7 +57,20 @@ class KundenController(
 		).render()
 
 	}
+
+	@HxRequest
+	@GetMapping("/kunden/{id}/detail")
+	fun getKundenDetail(@PathVariable id: UUID): String {
+		val verpflichtungenDesKunden = verpflichtungenRepository.findByKundeId(id)
+		return templates.pagesKundenTablePartialsKundeVerpflichtungen(verpflichtungenDesKunden).render()
+	}
+
+	@HxRequest
+	@DeleteMapping("/kunden/{id}")
+	fun kundenLoeschen(@PathVariable id: UUID): String {
+		kundenRepository.deleteClient(id)
+		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
+		return templates.pagesKundenTablePartialsKundenAnzahl(totalAmountOfClientsLeft).render()
+	}
+	//endregion
 }
-
-
-
