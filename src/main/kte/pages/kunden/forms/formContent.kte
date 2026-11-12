@@ -1,6 +1,6 @@
-@import org.zdigdemo.edge.repositories.KundeViewModel
+@import org.zdigdemo.edge.controller.KundeDTO
 
-@param kunde: KundeViewModel
+@param kunde: KundeDTO
 
 <div class="border-b border-gray-900/10 pb-12">
 

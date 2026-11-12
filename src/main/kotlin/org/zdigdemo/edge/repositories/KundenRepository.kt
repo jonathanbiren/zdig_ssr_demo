@@ -6,6 +6,8 @@ import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import org.zdigdemo.config.ClientSearchProperties
+import org.zdigdemo.edge.controller.KundeDTO
+import org.zdigdemo.edge.controller.KundeViewModel
 import org.zdigdemo.jooq.routines.references.wordSimilarity
 import org.zdigdemo.jooq.tables.daos.KundenDao
 import org.zdigdemo.jooq.tables.pojos.Kunden
@@ -38,6 +40,8 @@ class KundenRepository(
     fun getClient(id: UUID): KundeViewModel? =
         kundenDao.findById(id)?.toViewModel()
 
+	fun getClientDTO(id: UUID): KundeDTO? =
+		kundenDao.findById(id)?.toDTO
     //* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
     //* ON DELETE CASCADE.
     fun deleteClient(id: UUID) = kundenDao.deleteById(id)
@@ -173,15 +177,7 @@ data class SortData(
 // the schema (see src/main/resources/db/migration), so these non-null assertions are backed
 // by the database itself. DAO methods return generated POJOs, DSL queries return Records —
 // hence one mapper per generated type.
-data class KundeViewModel(
-    val id: String,
-    val kurzname: String,
-    val name: String,
-    val zsNummer: Long,
-    val adresse: String,
-    val status: String,
-    val istBesondersSchuetzenswert: Boolean,
-) {}
+
 
 //Kunden is DAO type
 fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
@@ -194,6 +190,10 @@ fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
     istBesondersSchuetzenswert = this.besondersSchuetzenswert!!
 )
 
+fun Kunden.toDTO(): KundeDTO = KundeDTO(
+	id = this.id,
+
+)
 //KundenRecord ist DSLContext type
 fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
     id = id.toString(),

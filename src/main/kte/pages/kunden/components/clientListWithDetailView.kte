@@ -58,10 +58,10 @@
 			<td>${kunde.status}</td>
 			<td>${kunde.istBesondersSchuetzenswert}</td>
 			<td @click.stop>
-				<button class="btn btn-neutral btn-sm"
+				<a class="btn btn-neutral btn-sm"
 				   href="/kunden/${kunde.id}/edit">
 					Edit
-				</button>
+				</a>
 				<button class="btn btn-neutral btn-sm"
 				        hx-trigger="click"
 				        hx-confirm="Sind Sie sich sicher, dass Sie den Kunden löschen wollen?"

@@ -1,12 +1,11 @@
 package org.zdigdemo.edge.controller
-
+import org.zdigdemo.edge.controller.KundeViewModel
 import gg.jte.generated.precompiled.Templates
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
-import org.zdigdemo.edge.repositories.KundeViewModel
 import org.zdigdemo.edge.repositories.KundenRepository
 import org.zdigdemo.edge.repositories.KundenSortColumn
 import org.zdigdemo.edge.repositories.SortData
@@ -37,8 +36,8 @@ class KundenController(
 
 	@GetMapping("/kunden/create")
 	fun kundenAnlegen(): String {
-		return templates.pagesKundenFormsEditForm(KundeViewModel(
-            id = UUID.randomUUID().toString(),
+		return templates.pagesKundenFormsEditForm(KundeDTO(
+            id = UUID.randomUUID(),
             kurzname = "",
             name = "",
 			zsNummer = 0,
@@ -53,7 +52,7 @@ class KundenController(
 	fun kundenSpeichern(kunde: KundeViewModel): ResponseEntity<Void> {
 		kundenRepository.editExistingClient(kunde)
 		return ResponseEntity.ok()
-			.header("HX-Location", "/verpflichtungen")
+			.header("HX-Location", "/")
 			.build()
 	}
 	//region HTMX endpoints
@@ -96,3 +95,23 @@ class KundenController(
 	}
 	//endregion
 }
+
+data class KundeDTO(
+	val id: UUID,
+	val kurzname: String,
+	val name: String,
+	val zsNummer: Long,
+	val adresse: String,
+	val status: String,
+	val istBesondersSchuetzenswert: Boolean,
+) {}
+
+data class KundeViewModel(
+	val id: String,
+	val kurzname: String,
+	val name: String,
+	val zsNummer: Long,
+	val adresse: String,
+	val status: String,
+	val istBesondersSchuetzenswert: Boolean,
+) {}

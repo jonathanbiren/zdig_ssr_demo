@@ -33,6 +33,7 @@
 		<kotlin.version>2.4.21</kotlin.version>
 		<jte.version>3.2.5</jte.version>
 		<htmx.version>4.0.1</htmx.version>
+		<arrow.version>2.3.0.1</arrow.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -118,6 +119,13 @@
 			<groupId>gg.jte</groupId>
 			<artifactId>jte-spring-boot-starter-4</artifactId>
 			<version>${jte.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.arrow-kt</groupId>
+			<artifactId>arrow-core</artifactId>
+			<version>2.3.0.1</version>
+			<type>pom</type>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>gg.jte</groupId>
@@ -304,6 +312,8 @@
 								-->
 								<generate>
 									<pojos>true</pojos>
+									<pojosAsKotlinDataClasses>true</pojosAsKotlinDataClasses>
+									<kotlinNotNullPojoAttributes>false</kotlinNotNullPojoAttributes>
 									<daos>true</daos>
 								</generate>
 								<target>

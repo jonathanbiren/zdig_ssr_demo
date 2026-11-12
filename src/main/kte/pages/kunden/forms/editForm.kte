@@ -1,6 +1,6 @@
-@import org.zdigdemo.edge.repositories.KundeViewModel
+@import org.zdigdemo.edge.controller.KundeDTO
 
-@param kunde: KundeViewModel
+@param kunde: KundeDTO
 @template.layout.layout(title = "Editieren | ${kunde.kurzname}", content = @`
     <section
             class="mx-auto mt-2 flex h-full w-full max-w-7xl flex-col gap-4 p-4"
