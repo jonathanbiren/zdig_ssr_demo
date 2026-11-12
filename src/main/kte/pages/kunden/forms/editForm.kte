@@ -9,8 +9,8 @@
             <h1 class="text-xl text-white">Editieren von Kunde ${kunde.name}</h1>
         </div>
         <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md">
-            <form class="p-6" hx-patch="/kunden/${kunde.id}/save">
-                <input type="hidden" name="id" value="${kunde.id}">
+            <form class="p-6" hx-patch="/kunden/${kunde.id.toString()}/save">
+                <input type="hidden" name="id" value="${kunde.id.toString()}">
                 @template.pages.kunden.forms.formContent(kunde = kunde)
             </form>
         </div>

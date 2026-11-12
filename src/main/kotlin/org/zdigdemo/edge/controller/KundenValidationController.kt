@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
-import org.zdigdemo.core.kunde.Kunde
+import org.zdigdemo.core.kunde.KundenZsNummer
 import org.zdigdemo.edge.repositories.KundenRepository
 
 @Controller
@@ -19,9 +19,11 @@ class KundenValidationController(
 ) {
     @GetMapping("/kunden/{id}/validateZsNr")
     fun validateZsNr(@RequestParam("zsNummer", required = false) zsNummer: String?): String {
-        val zsNr = zsNummer?.trim()?.toLongOrNull()
-        val istValide = Kunde.istValideZsNr(zsNr = zsNr)
-        return templates.pagesKundenFormsValidationReturnsZsNrValidation(istValide).render()
+        val validationResult = KundenZsNummer.create(zsNummer?.trim() ?: "")
+        return validationResult.fold(
+            ifLeft = { templates.pagesKundenFormsValidationReturnsZsNrValidation(it).render() },
+            ifRight = { """<span id="zsNummer-validation"></span>""" }
+        )
     }
 
 }

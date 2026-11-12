@@ -6,11 +6,8 @@ import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import org.zdigdemo.config.ClientSearchProperties
-import org.zdigdemo.edge.controller.KundeDTO
-import org.zdigdemo.edge.controller.KundeViewModel
+import org.zdigdemo.core.kunde.Kunde
 import org.zdigdemo.jooq.routines.references.wordSimilarity
-import org.zdigdemo.jooq.tables.daos.KundenDao
-import org.zdigdemo.jooq.tables.pojos.Kunden
 import org.zdigdemo.jooq.tables.records.KundenRecord
 import org.zdigdemo.jooq.tables.references.KUNDEN
 import java.util.*
@@ -24,39 +21,40 @@ import kotlin.enums.EnumEntries
  * DAO and DSL calls share Spring Boot's jOOQ Configuration, so both participate in
  * this class's transaction.
  */
+
 @Transactional
 @Repository
 class KundenRepository(
     private val dsl: DSLContext,
-    private val kundenDao: KundenDao,
     private val clientSearchProperties: ClientSearchProperties,
 ) {
 
+	private val KUNDEN_SUCHTEXT: Field<String?> = DSL.concat(
+		KUNDEN.KURZNAME, DSL.inline(" "),
+		KUNDEN.NAME, DSL.inline(" "),
+		KUNDEN.ZS_NUMMER.cast(String::class.java), DSL.inline(" "),
+		KUNDEN.ADRESSE, DSL.inline(" "),
+		KUNDEN.STATUS
+	)
+
+
     //region DAO Methods
-    fun getAllClients(): List<KundeViewModel> {
-        return kundenDao.findAll().map { kundeDao -> kundeDao.toViewModel() }
-    }
+    fun getAllClients(): List<KundenRecord> {
+        return dsl.selectFrom(KUNDEN).fetch()
+	}
 
-    fun getClient(id: UUID): KundeViewModel? =
-        kundenDao.findById(id)?.toViewModel()
+	fun getClient(id:UUID): KundenRecord? =
+		dsl.selectFrom(KUNDEN).where(KUNDEN.ID.eq(id))
+			.fetchOne()
 
-	fun getClientDTO(id: UUID): KundeDTO? =
-		kundenDao.findById(id)?.toDTO
-    //* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
+	//* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
     //* ON DELETE CASCADE.
-    fun deleteClient(id: UUID) = kundenDao.deleteById(id)
+    fun deleteClient(id: UUID) = dsl.deleteFrom(KUNDEN).where(KUNDEN.ID.eq(id)).execute()
+
     //endregion
 
-    private val KUNDEN_SUCHTEXT: Field<String?> = DSL.concat(
-        KUNDEN.KURZNAME, DSL.inline(" "),
-        KUNDEN.NAME, DSL.inline(" "),
-        KUNDEN.ZS_NUMMER.cast(String::class.java), DSL.inline(" "),
-        KUNDEN.ADRESSE, DSL.inline(" "),
-        KUNDEN.STATUS
-    )
-
 	// Custom Query using Postgres specific word_similarity function
-	fun getAllClientsFittingSearchterm(searchTerm: String): List<KundeViewModel> {
+	fun getAllClientsFittingSearchterm(searchTerm: String): List<KundenRecord> {
 		// wordSimilarity is the pg_trgm function word_similarity(), reverse-engineered
 		// by the code generator into a typed Kotlin function. No string SQL anywhere.
 		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
@@ -65,13 +63,12 @@ class KundenRepository(
 			.orderBy(similarity.desc())
 			.limit(clientSearchProperties.maxAmountOfSearchResults)
 			.fetch()
-			.map { kundenRecord -> kundenRecord.toViewModel() }
 	}
 
 	fun getClients(
 		sortData: SortData = SortData(),
 		searchTerm: String?
-	): List<KundeViewModel> {
+	): List<KundenRecord> {
 
 		val sortField = when (sortData.sortDirection) {
 			SortDirection.ASC -> sortData.sortColumn.field.asc()
@@ -79,7 +76,7 @@ class KundenRepository(
 		}
 
 		if (searchTerm.isNullOrEmpty()) {
-			return dsl.selectFrom(KUNDEN).orderBy(sortField).fetch().map { it.toViewModel() }
+			return dsl.selectFrom(KUNDEN).orderBy(sortField).fetch()
 		} else {
 			val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
 			return dsl.selectFrom(KUNDEN)
@@ -87,27 +84,14 @@ class KundenRepository(
 				.orderBy(similarity.desc(), sortField)
 				.limit(clientSearchProperties.maxAmountOfSearchResults)
 				.fetch()
-				.map { kundenRecord -> kundenRecord.toViewModel() }
-
 		}
 	}
 
-    // update() writes all columns of the POJO into the row with the same primary key
-    // (UPDATE kunden SET ... WHERE id = ?). If that id does not exist, jOOQ silently updates
-    // 0 rows, hence the explicit existence check.
-    fun editExistingClient(kunde: KundeViewModel): KundeViewModel {
-        val kundePojo = Kunden(
-            id = UUID.fromString(kunde.id),
-            name = kunde.name,
-            kurzname = kunde.kurzname,
-            zsNummer = kunde.zsNummer,
-            adresse = kunde.adresse,
-            status = kunde.status,
-            besondersSchuetzenswert = kunde.istBesondersSchuetzenswert,
-        )
-        kundenDao.update(kundePojo)
-        return kunde
-    }
+	fun editExistingClient(kunde: Kunde): Kunde {
+		val kundenRecord = kunde.toRecord()
+		kundenRecord.update()
+		return kunde
+	}
     //endregion
 }
 
@@ -179,29 +163,16 @@ data class SortData(
 // hence one mapper per generated type.
 
 
-//Kunden is DAO type
-fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
-    id = this.id.toString(),
-    kurzname = this.kurzname!!,
-    name = this.name!!,
-    zsNummer = this.zsNummer!!,
-    adresse = this.adresse!!,
-    status = this.status!!,
-    istBesondersSchuetzenswert = this.besondersSchuetzenswert!!
-)
 
-fun Kunden.toDTO(): KundeDTO = KundeDTO(
-	id = this.id,
 
-)
 //KundenRecord ist DSLContext type
-fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
-    id = id.toString(),
-    kurzname = kurzname!!,
-    name = name!!,
-    zsNummer = zsNummer!!,
-    adresse = adresse!!,
-    status = status!!,
-    istBesondersSchuetzenswert = besondersSchuetzenswert!!
+fun Kunde.toRecord(): KundenRecord = KundenRecord(
+    id = id,
+    kurzname = kundenKurzname.value,
+    name = kundenName.value,
+    zsNummer = kundenZsNummer.value,
+    adresse = adresse,
+    status = status,
+    besondersSchuetzenswert = besondersSchuetzenswert
 )
 //endregion

@@ -1,8 +1,6 @@
 package org.zdigdemo.edge.repositories
 
 import org.jooq.DSLContext
-import org.zdigdemo.jooq.tables.daos.VerpflichtungenDao
-import org.zdigdemo.jooq.tables.pojos.Verpflichtungen
 import org.zdigdemo.jooq.tables.records.VerpflichtungenRecord
 import org.zdigdemo.jooq.tables.references.VERPFLICHTUNGEN
 import org.springframework.stereotype.Repository
@@ -19,24 +17,23 @@ import java.util.*
 @Repository
 class VerpflichtungRepository(
 	private val dsl: DSLContext,
-	private val verpflichtungenDao: VerpflichtungenDao,
 ) {
 	// region DAO methods
 	// You should investigate whether it is a better practice to directly return the type of the DAO from
 	// the domain layer or to map the DAO type to the domain layer first. Intuitively, given that we don't want
 	// to have dependencies flowing from domain -> data access, I would say mapping it is the better choice.
-	fun findById(id: UUID): VerpflichtungViewModel? =
-		verpflichtungenDao.findById(id)?.toViewModel()
+	fun findById(id: UUID): VerpflichtungenRecord? =
+		dsl.selectFrom(VERPFLICHTUNGEN).where(VERPFLICHTUNGEN.ID.eq(id)).fetchOne()
 
 	// The DAO API only offers separate insert()/update(); an upsert (INSERT .. ON CONFLICT
 	// .. DO UPDATE) is beyond it, so this stays a DSL query as well.
-	fun save(verpflichtung: VerpflichtungViewModel): VerpflichtungViewModel {
+/*	fun save(verpflichtung: VerpflichtungViewModel): VerpflichtungViewModel {
 		verpflichtungenDao.insert(verpflichtung.toDao())
 		return verpflichtung
-	}
+	}*/
 
 	fun deleteById(id: UUID) {
-		verpflichtungenDao.deleteById(id)
+		dsl.deleteFrom(VERPFLICHTUNGEN).where(VERPFLICHTUNGEN.ID.eq(id)).execute()
 	}
 	//endregion
 
@@ -68,21 +65,15 @@ class VerpflichtungViewModel(
 // See KundenRepository for why the non-null assertions are safe, and why there is one
 // mapper per generated type (POJO for the DAO, Record for DSL queries).
 
-fun VerpflichtungViewModel.toDao() = Verpflichtungen(
+/*fun VerpflichtungViewModel.toDao() = Verpflichtungen(
 	id = this.id,
 	kundeId = this.kundeId,
 	bezeichnung = this.bezeichnung,
 	betragCent = this.betragCent,
 	erstelltAm = this.erstelltAm
-)
+)*/
 
-fun Verpflichtungen.toViewModel(): VerpflichtungViewModel = VerpflichtungViewModel(
-	id = id!!,
-	kundeId = kundeId!!,
-	bezeichnung = bezeichnung!!,
-	betragCent = betragCent!!,
-	erstelltAm = erstelltAm!!
-)
+
 
 fun VerpflichtungenRecord.toViewModel(): VerpflichtungViewModel = VerpflichtungViewModel(
 	id = this.id!!,

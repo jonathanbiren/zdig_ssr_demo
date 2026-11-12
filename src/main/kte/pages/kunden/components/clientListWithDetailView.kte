@@ -1,4 +1,4 @@
-@import org.zdigdemo.edge.repositories.KundeViewModel
+@import org.zdigdemo.edge.controller.KundeViewModel
 @import org.zdigdemo.edge.repositories.SortData
 @import org.zdigdemo.edge.repositories.SortDirection
 

@@ -43,12 +43,15 @@
         <div class="sm:col-span-2 sm:col-start-1">
             <label for="zsNummer" class="block text-sm font-medium leading-6 text-gray-900">ZS-NR</label>
             <div class="mt-2">
-                <input type="text" name="zsNummer" id="zsNummer" hx-get="/kunden/${kunde.id}/validateZsNr"
-                       hx-trigger="input changed delay:300ms" hx-target="next span" value="${kunde.zsNummer}"
-                class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset
-                ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm
-                sm:leading-6">
-                <span></span>
+                <input type="text" name="zsNummer" id="zsNummer"
+                       hx-get="/kunden/${kunde.id.toString()}/validateZsNr"
+                       hx-trigger="input changed delay:300ms"
+                       hx-target="#zsNummer-validation"
+                       hx-swap="outerHTML"
+                       aria-describedby="zsNummer-validation"
+                       value="${kunde.zsNummer}"
+                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                <span id="zsNummer-validation"></span>
             </div>
         </div>
 

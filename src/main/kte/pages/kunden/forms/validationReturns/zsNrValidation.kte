@@ -1,7 +1,7 @@
-@param isValid: Boolean
+@import org.zdigdemo.core.kunde.KundenZsNummer.ZsValidationError
 
-@if(isValid)
-    <span class="text-success">ZsNr ist valide</span>
-@else
-    <span class="text-error" data-invalid="true">ZsNr ist nicht valide</span>
-@endif
+@param validationResult: ZsValidationError
+
+<span id="zsNummer-validation" class="text-error text-sm mt-1 block" role="alert">
+    ${validationResult.errorMessage}
+</span>
