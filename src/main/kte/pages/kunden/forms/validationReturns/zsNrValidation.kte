@@ -2,6 +2,6 @@
 
 @param validationResult: ZsValidationError
 
-<span id="zsNummer-validation" class="text-error text-sm mt-1 block" role="alert">
+<span class="text-error text-sm mt-1 block" role="alert">
     ${validationResult.errorMessage}
 </span>

@@ -22,7 +22,7 @@ class KundenValidationController(
         val validationResult = KundenZsNummer.create(zsNummer?.trim() ?: "")
         return validationResult.fold(
             ifLeft = { templates.pagesKundenFormsValidationReturnsZsNrValidation(it).render() },
-            ifRight = { """<span id="zsNummer-validation"></span>""" }
+            ifRight = { """<span></span>""" }
         )
     }
 

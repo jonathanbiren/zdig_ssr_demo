@@ -64,7 +64,7 @@ value class KundenZsNummer private constructor(val value: Long) {
 
         fun create(zsNnummer: String): Either<ZsValidationError, KundenZsNummer> = either {
             val parsedLong = zsNnummer.toLongOrNull()
-                ?: raise(ZsValidationError.NotANumberError("ZS-Nummer muss eine gültige Zahl sein"))
+                ?: return Either.Left(ZsValidationError.NotANumberError("ZS-Nummer muss eine gültige Zahl sein"))
             return create(parsedLong)
         }
     }
