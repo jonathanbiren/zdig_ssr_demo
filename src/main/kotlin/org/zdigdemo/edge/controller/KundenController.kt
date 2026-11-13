@@ -3,7 +3,6 @@ package org.zdigdemo.edge.controller
 import gg.jte.generated.precompiled.Templates
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
 import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import org.zdigdemo.edge.repositories.KundenRepository

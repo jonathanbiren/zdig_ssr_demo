@@ -14,7 +14,6 @@ import java.util.*
 import kotlin.enums.EnumEntries
 
 /**
- * Plain single-table CRUD goes through the generated [org.zdigdemo.jooq.tables.daos.KundenDao]. Anything the fixed
  * DAO API cannot express (joins, MULTISET aggregation, the trigram search) stays a
  * handwritten DSL query — that split is the intended jOOQ usage, not a workaround.
  *
