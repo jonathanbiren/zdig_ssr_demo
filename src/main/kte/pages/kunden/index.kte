@@ -1,4 +1,4 @@
-@import org.zdigdemo.edge.repositories.KundeViewModel
+@import org.zdigdemo.edge.controller.KundeViewModel
 @import org.zdigdemo.edge.repositories.SortData
 
 @param kundenListe: List<KundeViewModel>
@@ -15,13 +15,16 @@
 		<section
 				class="col-span-2 flex min-h-0 flex-col gap-4"
 				:class="detailViewOpen ? 'lg:col-span-1' : 'lg:col-span-2'"
-		>
-			<div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
-				<div class="flex items-center gap-3">
-					<span class="font-medium">Kundenanzahl</span>
-					<span id="kundenanzahlContainer"
-					      class="badge badge-lg badge-primary">${anzahlElementeInKundenliste}</span>
-				</div>
+	>
+		<div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
+			<div class="flex items-center gap-3">
+				<span class="font-medium">Kundenanzahl</span>
+				<span id="kundenanzahlContainer"
+				      class="badge badge-lg badge-primary">${anzahlElementeInKundenliste}</span>
+			</div>
+			<a class="btn btn-primary" href="/kunden/create">
+				Neuer Kunde
+			</a>
 
 				<label class="form-control w-full max-w-xs">
 					<span class="label py-1">Search</span>

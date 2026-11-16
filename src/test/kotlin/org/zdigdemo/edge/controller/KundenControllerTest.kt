@@ -42,4 +42,33 @@ class KundenControllerTest {
 			}
 		}
 	}
+
+	@Test
+	fun `validateZsNr returns error span with role alert on invalid input`() {
+		mockMvc.get("/kunden/some-id/validateZsNr") {
+			param("zsNummer", "123")
+		}.andExpect {
+			status { isOk() }
+			content {
+				contentTypeCompatibleWith(MediaType.TEXT_HTML)
+				string(containsString("id=\"zsNummer-validation\""))
+				string(containsString("role=\"alert\""))
+				string(containsString("text-error"))
+				string(containsString("ZS-Nummer muss größer als 999 sein"))
+			}
+		}
+	}
+
+	@Test
+	fun `validateZsNr returns empty validation span on valid input`() {
+		mockMvc.get("/kunden/some-id/validateZsNr") {
+			param("zsNummer", "1234")
+		}.andExpect {
+			status { isOk() }
+			content {
+				contentTypeCompatibleWith(MediaType.TEXT_HTML)
+				string(containsString("<span id=\"zsNummer-validation\"></span>"))
+			}
+		}
+	}
 }

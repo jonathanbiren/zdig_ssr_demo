@@ -1,0 +1,7 @@
+@import org.zdigdemo.core.kunde.KundenZsNummer.ZsValidationError
+
+@param validationResult: ZsValidationError
+
+<span class="text-error text-sm mt-1 block" role="alert">
+    ${validationResult.errorMessage}
+</span>

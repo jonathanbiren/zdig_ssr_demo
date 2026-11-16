@@ -6,42 +6,27 @@ import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import org.zdigdemo.config.ClientSearchProperties
+import org.zdigdemo.core.kunde.Kunde
 import org.zdigdemo.jooq.routines.references.wordSimilarity
-import org.zdigdemo.jooq.tables.daos.KundenDao
-import org.zdigdemo.jooq.tables.pojos.Kunden
 import org.zdigdemo.jooq.tables.records.KundenRecord
 import org.zdigdemo.jooq.tables.references.KUNDEN
 import java.util.*
 import kotlin.enums.EnumEntries
 
 /**
- * Plain single-table CRUD goes through the generated [org.zdigdemo.jooq.tables.daos.KundenDao]. Anything the fixed
  * DAO API cannot express (joins, MULTISET aggregation, the trigram search) stays a
  * handwritten DSL query — that split is the intended jOOQ usage, not a workaround.
  *
  * DAO and DSL calls share Spring Boot's jOOQ Configuration, so both participate in
  * this class's transaction.
  */
+
 @Transactional
 @Repository
 class KundenRepository(
-	private val dsl: DSLContext,
-	private val kundenDao: KundenDao,
-	private val clientSearchProperties: ClientSearchProperties,
+    private val dsl: DSLContext,
+    private val clientSearchProperties: ClientSearchProperties,
 ) {
-
-	//region DAO Methods
-	fun getAllClients(): List<KundeViewModel> {
-		return kundenDao.findAll().map { kundeDao -> kundeDao.toViewModel() }
-	}
-
-	fun getClient(id: UUID): KundeViewModel? =
-		kundenDao.findById(id)?.toViewModel()
-
-	//* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
-	//* ON DELETE CASCADE.
-	fun deleteClient(id: UUID) = kundenDao.deleteById(id)
-	//endregion
 
 	private val KUNDEN_SUCHTEXT: Field<String?> = DSL.concat(
 		KUNDEN.KURZNAME, DSL.inline(" "),
@@ -51,8 +36,24 @@ class KundenRepository(
 		KUNDEN.STATUS
 	)
 
+
+    //region DAO Methods
+    fun getAllClients(): List<KundenRecord> {
+        return dsl.selectFrom(KUNDEN).fetch()
+	}
+
+	fun getClient(id:UUID): KundenRecord? =
+		dsl.selectFrom(KUNDEN).where(KUNDEN.ID.eq(id))
+			.fetchOne()
+
+	//* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
+    //* ON DELETE CASCADE.
+    fun deleteClient(id: UUID) = dsl.deleteFrom(KUNDEN).where(KUNDEN.ID.eq(id)).execute()
+
+    //endregion
+
 	// Custom Query using Postgres specific word_similarity function
-	fun getAllClientsFittingSearchterm(searchTerm: String): List<KundeViewModel> {
+	fun getAllClientsFittingSearchterm(searchTerm: String): List<KundenRecord> {
 		// wordSimilarity is the pg_trgm function word_similarity(), reverse-engineered
 		// by the code generator into a typed Kotlin function. No string SQL anywhere.
 		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
@@ -61,13 +62,12 @@ class KundenRepository(
 			.orderBy(similarity.desc())
 			.limit(clientSearchProperties.maxAmountOfSearchResults)
 			.fetch()
-			.map { kundenRecord -> kundenRecord.toViewModel() }
 	}
 
 	fun getClients(
 		sortData: SortData = SortData(),
 		searchTerm: String?
-	): List<KundeViewModel> {
+	): List<KundenRecord> {
 
 		val sortField = when (sortData.sortDirection) {
 			SortDirection.ASC -> sortData.sortColumn.field.asc()
@@ -75,7 +75,7 @@ class KundenRepository(
 		}
 
 		if (searchTerm.isNullOrEmpty()) {
-			return dsl.selectFrom(KUNDEN).orderBy(sortField).fetch().map { it.toViewModel() }
+			return dsl.selectFrom(KUNDEN).orderBy(sortField).fetch()
 		} else {
 			val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
 			return dsl.selectFrom(KUNDEN)
@@ -83,10 +83,15 @@ class KundenRepository(
 				.orderBy(similarity.desc(), sortField)
 				.limit(clientSearchProperties.maxAmountOfSearchResults)
 				.fetch()
-				.map { kundenRecord -> kundenRecord.toViewModel() }
-
 		}
 	}
+
+	fun editExistingClient(kunde: Kunde): Kunde {
+		val kundenRecord = kunde.toRecord()
+		kundenRecord.update()
+		return kunde
+	}
+    //endregion
 }
 
 //region Sorting
@@ -155,35 +160,18 @@ data class SortData(
 // the schema (see src/main/resources/db/migration), so these non-null assertions are backed
 // by the database itself. DAO methods return generated POJOs, DSL queries return Records —
 // hence one mapper per generated type.
-data class KundeViewModel(
-	val id: String,
-	val kurzname: String,
-	val name: String,
-	val zsNummer: Long,
-	val adresse: String,
-	val status: String,
-	val istBesondersSchuetzenswert: Boolean,
-) {}
 
-//Kunden is DAO type
-fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
-	id = this.id.toString(),
-	kurzname = this.kurzname!!,
-	name = this.name!!,
-	zsNummer = this.zsNummer!!,
-	adresse = this.adresse!!,
-	status = this.status!!,
-	istBesondersSchuetzenswert = this.besondersSchuetzenswert!!
-)
+
+
 
 //KundenRecord ist DSLContext type
-fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
-	id = id.toString(),
-	kurzname = kurzname!!,
-	name = name!!,
-	zsNummer = zsNummer!!,
-	adresse = adresse!!,
-	status = status!!,
-	istBesondersSchuetzenswert = besondersSchuetzenswert!!
+fun Kunde.toRecord(): KundenRecord = KundenRecord(
+    id = id,
+    kurzname = kundenKurzname.value,
+    name = kundenName.value,
+    zsNummer = kundenZsNummer.value,
+    adresse = adresse,
+    status = status,
+    besondersSchuetzenswert = besondersSchuetzenswert
 )
 //endregion
