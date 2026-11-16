@@ -1,0 +1,14 @@
+@import org.zdigdemo.core.kunde.Kunde.KundeValidationError
+
+@param errors: List<KundeValidationError>
+
+<div class="mb-6 rounded-md border border-error bg-error/10 p-4" role="alert">
+    <h2 class="mb-2 font-semibold text-error">
+        Bitte korrigiere folgende Felder:
+    </h2>
+    <ul class="list-disc pl-5 text-sm text-error">
+        @for (error in errors)
+            <li>${error.errorMessage}</li>
+        @endfor
+    </ul>
+</div>
