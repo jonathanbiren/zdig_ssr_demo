@@ -34,6 +34,7 @@ build/
 ### VS Code ###
 .vscode/
 
+
 # Environment files
 .env
 .env.local
@@ -42,6 +43,7 @@ build/
 # Tailwind CSS / Node.js
 node_modules/
 package-lock.json
+/src/main/resources/static/css/app.css
 
 # OS files
 .DS_Store
