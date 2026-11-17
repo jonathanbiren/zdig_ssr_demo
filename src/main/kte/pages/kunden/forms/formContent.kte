@@ -13,8 +13,13 @@
                 <input type="text"
                        name="name"
                        id="name"
+                       hx-get="/kunden/${kunde.id.toString()}/validateName"
+                       hx-trigger="input changed delay:300ms"
+                       hx-target="next span"
+                       hx-swap="outerHTML"
                        value="${kunde.name}"
                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                <span></span>
             </div>
         </div>
 
@@ -26,8 +31,13 @@
                 <input type="text"
                        name="kurzname"
                        id="kurzname"
+                       hx-get="/kunden/${kunde.id.toString()}/validateKurzname"
+                       hx-trigger="input changed delay:300ms"
+                       hx-target="next span"
+                       hx-swap="outerHTML"
                        value="${kunde.kurzname}"
                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                <span></span>
             </div>
         </div>
 

@@ -3,8 +3,10 @@ package org.zdigdemo.edge.controller
 import gg.jte.generated.precompiled.Templates
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
+import org.zdigdemo.core.kunde.Kunde
 import org.zdigdemo.edge.repositories.KundenRepository
 import org.zdigdemo.edge.repositories.KundenSortColumn
 import org.zdigdemo.edge.repositories.SortData
@@ -41,7 +43,7 @@ class KundenController(
                 id = UUID.randomUUID(),
                 kurzname = "",
                 name = "",
-                zsNummer = 0,
+                zsNummer = "",
                 adresse = "",
                 status = "",
                 istBesondersSchuetzenswert = false
@@ -50,13 +52,32 @@ class KundenController(
     }
     //endregion
 
-/*    @PatchMapping("/kunden/{id}/save")
-    fun kundenSpeichern(kunde: KundeDTO): ResponseEntity<Void> {
-        kundenRepository.editExistingClient(kunde)
-        return ResponseEntity.ok()
-            .header("HX-Location", "/")
-            .build()
-    }*/
+    // ... existing code ...
+
+    @PatchMapping("/kunden/{id}/save")
+    fun kundenSpeichern(kundeDTO: KundeDTO): ResponseEntity<*> {
+        val kundenResult = kundeDTO.toKunde()
+
+        return kundenResult.fold(
+            ifLeft = { errors ->
+                ResponseEntity.badRequest()
+                    .body(
+                        templates.pagesKundenFormsValidationReturnsFormValidationError(
+                            errors = errors
+                        ).render()
+                    )
+            },
+            ifRight = { kunde ->
+                kundenRepository.editExistingClient(kunde)
+
+                ResponseEntity.ok()
+                    .header("HX-Location", "/")
+                    .body("")
+            },
+        )
+    }
+
+// ... existing code ...
 
     //region HTMX endpoints
     @HxRequest
@@ -102,7 +123,7 @@ class KundenController(
 data class KundeDTO(
     var id: UUID,
     var name: String,
-    var zsNummer: Long,
+    var zsNummer: String,
     var kurzname: String,
     var adresse: String,
     var status: String,
@@ -112,7 +133,7 @@ data class KundeDTO(
 fun KundenRecord.toDTO(): KundeDTO = KundeDTO(
     id = id!!,
     name = name!!,
-    zsNummer = zsNummer!!,
+    zsNummer = zsNummer!!.toString(),
     kurzname = kurzname!!,
     adresse = adresse!!,
     status = status!!,
@@ -138,3 +159,14 @@ fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
     status = status!!,
     istBesondersSchuetzenswert = besondersSchuetzenswert!!
 )
+
+fun KundeDTO.toKunde() = Kunde.create(
+        id = id,
+        kundenName = name,
+        kundenKurzname = kurzname,
+        adresse = adresse,
+        kundenZsNummer = zsNummer,
+        status = status,
+        besondersSchuetzenswert = istBesondersSchuetzenswert
+    )
+

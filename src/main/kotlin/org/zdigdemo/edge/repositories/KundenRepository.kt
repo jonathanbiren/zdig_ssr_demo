@@ -87,8 +87,15 @@ class KundenRepository(
 	}
 
 	fun editExistingClient(kunde: Kunde): Kunde {
-		val kundenRecord = kunde.toRecord()
-		kundenRecord.update()
+		dsl.update(KUNDEN)
+			.set(KUNDEN.KURZNAME, kunde.kundenKurzname.value)
+			.set(KUNDEN.NAME, kunde.kundenName.value)
+			.set(KUNDEN.ZS_NUMMER, kunde.kundenZsNummer.value)
+			.set(KUNDEN.ADRESSE, kunde.adresse)
+			.set(KUNDEN.STATUS, kunde.status)
+			.set(KUNDEN.BESONDERS_SCHUETZENSWERT, kunde.besondersSchuetzenswert)
+			.where(KUNDEN.ID.eq(kunde.id))
+			.execute()
 		return kunde
 	}
     //endregion
