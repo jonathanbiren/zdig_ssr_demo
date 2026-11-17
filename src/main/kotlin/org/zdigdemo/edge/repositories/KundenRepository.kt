@@ -98,6 +98,18 @@ class KundenRepository(
 			.execute()
 		return kunde
 	}
+	fun saveNewClient(kunde: Kunde): Kunde {
+		dsl.insertInto(KUNDEN)
+			.set(KUNDEN.ID, kunde.id)
+			.set(KUNDEN.KURZNAME, kunde.kundenKurzname.value)
+			.set(KUNDEN.NAME, kunde.kundenName.value)
+			.set(KUNDEN.ZS_NUMMER, kunde.kundenZsNummer.value)
+			.set(KUNDEN.ADRESSE, kunde.adresse)
+			.set(KUNDEN.STATUS, kunde.status)
+			.set(KUNDEN.BESONDERS_SCHUETZENSWERT, kunde.besondersSchuetzenswert)
+			.execute()
+		return kunde
+	}
     //endregion
 }
 

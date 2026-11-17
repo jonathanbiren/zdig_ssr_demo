@@ -38,7 +38,7 @@ class KundenController(
 
     @GetMapping("/kunden/create")
     fun kundenAnlegen(): String {
-        return templates.pagesKundenFormsEditForm(
+        return templates.pagesKundenFormsCreateForm(
             KundeDTO(
                 id = UUID.randomUUID(),
                 kurzname = "",
@@ -55,7 +55,7 @@ class KundenController(
     // ... existing code ...
 
     @PatchMapping("/kunden/{id}/save")
-    fun kundenSpeichern(kundeDTO: KundeDTO): ResponseEntity<*> {
+    fun vorhandenenKundenSpeichern(kundeDTO: KundeDTO): ResponseEntity<*> {
         val kundenResult = kundeDTO.toKunde()
 
         return kundenResult.fold(
@@ -69,6 +69,29 @@ class KundenController(
             },
             ifRight = { kunde ->
                 kundenRepository.editExistingClient(kunde)
+
+                ResponseEntity.ok()
+                    .header("HX-Location", "/")
+                    .body("")
+            },
+        )
+    }
+
+    @PostMapping("/kunden/{id}/save")
+    fun neuenKundenSpeichern(kundeDTO: KundeDTO): ResponseEntity<*> {
+        val kundenResult = kundeDTO.toKunde()
+
+        return kundenResult.fold(
+            ifLeft = { errors ->
+                ResponseEntity.badRequest()
+                    .body(
+                        templates.pagesKundenFormsValidationReturnsFormValidationError(
+                            errors = errors
+                        ).render()
+                    )
+            },
+            ifRight = { kunde ->
+                kundenRepository.saveNewClient(kunde)
 
                 ResponseEntity.ok()
                     .header("HX-Location", "/")
