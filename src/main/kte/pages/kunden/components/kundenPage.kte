@@ -1,0 +1,22 @@
+@import kotlin.collections.isNotEmpty
+@import org.zdigdemo.edge.controller.KundeViewModel
+@import org.zdigdemo.edge.repositories.SortData
+
+@param kundenListe: List<KundeViewModel>
+@param sortierInformation: SortData
+
+@if(kundenListe.isNotEmpty())
+	@for(kunde in kundenListe)
+		@template.pages.kunden.components.tableRow(kunde = kunde)
+	@endfor
+	<tr hx-trigger="intersect once"
+	    hx-get="kunden/nextPage/${kundenListe.last().id}"
+	    hx-vals='{"sortColumn": "${sortierInformation.sortColumn.requestName}", "sortDirection": "${sortierInformation.sortDirection.value}"}'
+	    hx-include="#searchInput"
+	    hx-target="this"
+	    hx-swap="outerHTML"
+	/>
+@else
+	<tr>All content has been loaded</tr>
+@endif
+

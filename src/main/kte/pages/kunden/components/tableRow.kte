@@ -1,0 +1,34 @@
+@import org.zdigdemo.edge.controller.KundeViewModel
+
+@param kunde: KundeViewModel
+
+<tr
+		class="cursor-pointer row-hover"
+		@click="detailViewOpen = true"
+		hx-trigger="click"
+		hx-get="/kunden/${kunde.id}/detail"
+		hx-target="#detail-view-content"
+		hx-swap="innerHTML"
+		hx-sync="this:replace"
+		hx-indicator="#kunden-detail-loading"
+>
+	<td>${kunde.kurzname}</td>
+	<td>${kunde.name}</td>
+	<td>${kunde.zsNummer}</td>
+	<td>${kunde.adresse}</td>
+	<td>${kunde.status}</td>
+	<td>${kunde.istBesondersSchuetzenswert}</td>
+	<td @click.stop>
+		<a class="btn btn-neutral btn-sm"
+		   href="/kunden/${kunde.id}/edit">
+			Edit
+		</a>
+		<button class="btn btn-neutral btn-sm"
+		        hx-trigger="click"
+		        hx-confirm="Sind Sie sich sicher, dass Sie den Kunden löschen wollen?"
+		        hx-delete="/kunden/${kunde.id}"
+		>
+			Delete
+		</button>
+	</td>
+</tr>
