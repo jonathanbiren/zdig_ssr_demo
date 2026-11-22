@@ -26,17 +26,21 @@ class KundenController(
 
 	//region Full Page Endpoints
 	@GetMapping("/")
-	fun kundenMainPage(): String =
-		templates.pagesKundenIndex(
-			kundenListe = kundenRepository.getClients().map { it.toViewModel() },
+	fun kundenMainPage(): String {
+
+		val (data, _) = kundenRepository.getClients(sortData = SortData(), searchTerm = "")
+
+		return templates.pagesKundenIndex(
+			kundenListe = data.map { it.toViewModel() },
 			gesamtanzahlKunden = kundenRepository.getAllClientsCount(),
 			sortierInformation = SortData()
 		).render()
+	}
 
 	@GetMapping("/kunden/{id}/edit")
 	fun kundenEditieren(@PathVariable id: UUID): String {
 		val kunde = kundenRepository.getClient(id)
-			?: return templates.pagesKundenTablePartialsError().render()
+			?: return templates.pagesKundenPartialsError().render()
 		return templates.pagesKundenFormsEditForm(kunde.toDTO()).render()
 	}
 
@@ -94,14 +98,15 @@ class KundenController(
 				sortColumn = KundenSortColumn.fromRequestName(sortColumn),
 				sortDirection = SortDirection.create(sortDirection)
 			)
-		val kundenListe = kundenRepository.getClients(
+		val (data, amountSearchResults) = kundenRepository.getClients(
 			sortData = sortierInformation,
 			searchTerm = sucheingabe
-		).map { it.toViewModel() }
+		)
 
-		return templates.pagesKundenComponentsClientTable(
-			kundenListe = kundenListe,
-			sortierInformation = sortierInformation
+		return templates.pagesKundenPartialsClientTableWithSearchResultAmount(
+			kundenListe = data.map { it.toViewModel() },
+			anzahlSuchergebnnisse = amountSearchResults,
+			sortierInformation = sortierInformation,
 		).render()
 
 	}
@@ -110,7 +115,7 @@ class KundenController(
 	@GetMapping("/kunden/{id}/detail")
 	fun getKundenDetail(@PathVariable id: UUID): String {
 		val verpflichtungenDesKunden = verpflichtungenRepository.findByKundeId(id)
-		return templates.pagesKundenTablePartialsKundeVerpflichtungen(verpflichtungenDesKunden).render()
+		return templates.pagesKundenPartialsKundeVerpflichtungen(verpflichtungenDesKunden).render()
 	}
 
 	@HxRequest
@@ -132,7 +137,7 @@ class KundenController(
 			searchTerm = sucheingabe
 		).map { kundenRecord -> kundenRecord.toViewModel() }
 
-		return templates.pagesKundenComponentsTablePage(
+		return templates.pagesKundenPartialsTablePage(
 			kundenListe = kundenPage,
 			sortierInformation = sortData
 		).render()
@@ -143,7 +148,7 @@ class KundenController(
 	fun kundenLoeschen(@PathVariable id: UUID): String {
 		kundenRepository.deleteClient(id)
 		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
-		return templates.pagesKundenTablePartialsKundenAnzahl(totalAmountOfClientsLeft).render()
+		return templates.pagesKundenPartialsKundenAnzahl(totalAmountOfClientsLeft).render()
 	}
 	//endregion
 }

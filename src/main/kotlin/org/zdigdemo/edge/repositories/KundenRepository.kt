@@ -41,7 +41,13 @@ class KundenRepository(
 	}
 
 	fun getAllClientsCount(): Int {
-		return dsl.selectFrom(KUNDEN).fetch().count()
+		return dsl.fetchCount(KUNDEN)
+	}
+
+	private fun getClientsCountFittingSearchterm(searchTerm: String): Int {
+		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHSPALTE)
+		return dsl.selectFrom(KUNDEN)
+			.where(similarity.greaterOrEqual(clientSearchProperties.minimumSimilarity.toFloat())).count()
 	}
 
 	fun getClient(id: UUID): KundenRecord? =
@@ -52,38 +58,34 @@ class KundenRepository(
 	//* ON DELETE CASCADE.
 	fun deleteClient(id: UUID) = dsl.deleteFrom(KUNDEN).where(KUNDEN.ID.eq(id)).execute()
 
-	// Custom Query using Postgres specific word_similarity function
-	fun getAllClientsFittingSearchterm(searchTerm: String): List<KundenRecord> {
-		// wordSimilarity is the pg_trgm function word_similarity(), reverse-engineered
-		// by the code generator into a typed Kotlin function. No string SQL anywhere.
-		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHSPALTE)
-		return dsl.selectFrom(KUNDEN)
-			.where(similarity.ge(clientSearchProperties.minimumSimilarity.toFloat()))
-			.orderBy(similarity.desc(), KUNDEN.ID)
-			.limit(clientSearchProperties.pageSize)
-			.fetch()
-	}
 
 	fun getClients(
 		sortData: SortData = SortData(),
 		searchTerm: String? = ""
-	): List<KundenRecord> {
-
+	): ClientPage {
 		val sortField = when (sortData.sortDirection) {
 			SortDirection.ASC -> sortData.sortColumn.field.asc()
 			SortDirection.DESC -> sortData.sortColumn.field.desc()
 		}
 
 		if (searchTerm.isNullOrEmpty()) {
-			return dsl.selectFrom(KUNDEN).orderBy(sortField, KUNDEN.ID)
-				.limit(clientSearchProperties.pageSize).fetch()
+			return ClientPage(
+				data = dsl.selectFrom(KUNDEN)
+					.orderBy(sortField)
+					.limit(clientSearchProperties.pageSize)
+					.fetch(),
+				amountSearchResult = getAllClientsCount()
+			)
 		} else {
 			val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHSPALTE)
-			return dsl.selectFrom(KUNDEN)
-				.where(similarity.ge(clientSearchProperties.minimumSimilarity.toFloat()))
-				.orderBy(similarity.desc(), sortField)
-				.limit(clientSearchProperties.pageSize)
-				.fetch()
+			return ClientPage(
+				data = dsl.selectFrom(KUNDEN)
+					.where(similarity.greaterOrEqual(clientSearchProperties.minimumSimilarity.toFloat()))
+					.orderBy(similarity.desc())
+					.limit(clientSearchProperties.pageSize)
+					.fetch(),
+				amountSearchResult = getClientsCountFittingSearchterm(searchTerm)
+			)
 		}
 	}
 
@@ -128,8 +130,10 @@ class KundenRepository(
 			.execute()
 		return kunde
 	}
-	//endregion
+//endregion
 }
+
+data class ClientPage(val data: List<KundenRecord>, val amountSearchResult: Int)
 
 //region Sorting
 enum class SortDirection(val value: String) {
@@ -202,7 +206,6 @@ data class SortData(
 // hence one mapper per generated type.
 
 
-//KundenRecord ist DSLContext type
 fun Kunde.toRecord(): KundenRecord = KundenRecord(
 	id = id,
 	kurzname = kundenKurzname.value,

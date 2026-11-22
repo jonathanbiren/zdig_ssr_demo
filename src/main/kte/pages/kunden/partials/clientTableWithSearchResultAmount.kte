@@ -1,0 +1,9 @@
+@import org.zdigdemo.edge.controller.KundeViewModel
+@import org.zdigdemo.edge.repositories.SortData
+
+@param kundenListe: List<KundeViewModel>
+@param sortierInformation: SortData
+@param anzahlSuchergebnnisse: Int
+
+@template.pages.kunden.components.clientTable(kundenListe = kundenListe, sortierInformation = sortierInformation)
+<hx-partial id="anzahlSuchergebnisseContainer" hx-swap="innerHTML">${anzahlSuchergebnnisse}</hx-partial>

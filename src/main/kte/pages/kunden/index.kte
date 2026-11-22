@@ -17,10 +17,16 @@
 				:class="detailViewOpen ? 'lg:col-span-1' : 'lg:col-span-2'"
 		>
 			<div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
-				<div class="flex items-center gap-3">
-					<span class="font-medium">Kundenanzahl</span>
-					<span id="kundenanzahlContainer"
-					      class="badge badge-lg badge-primary">${gesamtanzahlKunden}</span>
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center gap-3">
+						<span class="font-medium">Kundenanzahl</span>
+						<span id="kundenanzahlContainer"
+						      class="badge badge-lg badge-primary">${gesamtanzahlKunden}</span>
+					</div>
+					<div class="flex items-center gap-3">
+						<span class="font-medium">Suchergebnisse</span>
+						<span id="anzahlSuchergebnisseContainer" class="badge badge-lg badge-primary">0</span>
+					</div>
 				</div>
 				<a class="btn btn-primary"
 				   href="/kunden/create">
