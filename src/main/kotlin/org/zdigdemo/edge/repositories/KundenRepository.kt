@@ -40,6 +40,10 @@ class KundenRepository(
 		return dsl.selectFrom(KUNDEN).fetch()
 	}
 
+	fun getAllClientsCount(): Int {
+		return dsl.selectFrom(KUNDEN).fetch().count()
+	}
+
 	fun getClient(id: UUID): KundenRecord? =
 		dsl.selectFrom(KUNDEN).where(KUNDEN.ID.eq(id))
 			.fetchOne()

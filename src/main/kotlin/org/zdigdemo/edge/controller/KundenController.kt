@@ -27,7 +27,11 @@ class KundenController(
 	//region Full Page Endpoints
 	@GetMapping("/")
 	fun kundenMainPage(): String =
-		templates.pagesKundenIndex(kundenRepository.getClients().map { it.toViewModel() }, SortData()).render()
+		templates.pagesKundenIndex(
+			kundenListe = kundenRepository.getClients().map { it.toViewModel() },
+			gesamtanzahlKunden = kundenRepository.getAllClientsCount(),
+			sortierInformation = SortData()
+		).render()
 
 	@GetMapping("/kunden/{id}/edit")
 	fun kundenEditieren(@PathVariable id: UUID): String {
@@ -90,9 +94,12 @@ class KundenController(
 				sortColumn = KundenSortColumn.fromRequestName(sortColumn),
 				sortDirection = SortDirection.create(sortDirection)
 			)
-		val kundenListe = kundenRepository.getClients(sortierInformation, sucheingabe).map { it.toViewModel() }
+		val kundenListe = kundenRepository.getClients(
+			sortData = sortierInformation,
+			searchTerm = sucheingabe
+		).map { it.toViewModel() }
 
-		return templates.pagesKundenComponentsClientListWithDetailView(
+		return templates.pagesKundenComponentsClientTable(
 			kundenListe = kundenListe,
 			sortierInformation = sortierInformation
 		).render()
@@ -125,7 +132,7 @@ class KundenController(
 			searchTerm = sucheingabe
 		).map { kundenRecord -> kundenRecord.toViewModel() }
 
-		return templates.pagesKundenComponentsKundenPage(
+		return templates.pagesKundenComponentsTablePage(
 			kundenListe = kundenPage,
 			sortierInformation = sortData
 		).render()

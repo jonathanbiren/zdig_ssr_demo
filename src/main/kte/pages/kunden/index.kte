@@ -1,10 +1,10 @@
+@import java.lang.Integer
 @import org.zdigdemo.edge.controller.KundeViewModel
 @import org.zdigdemo.edge.repositories.SortData
 
 @param kundenListe: List<KundeViewModel>
+@param gesamtanzahlKunden: Int
 @param sortierInformation: SortData
-<%--You can compute values from the data which is passed into the template --%>
-!{val anzahlElementeInKundenliste = kundenListe.size}
 
 @template.layout.layout(title = "SFA | Kunde", content = @`
 	<div
@@ -20,7 +20,7 @@
 				<div class="flex items-center gap-3">
 					<span class="font-medium">Kundenanzahl</span>
 					<span id="kundenanzahlContainer"
-					      class="badge badge-lg badge-primary">${anzahlElementeInKundenliste}</span>
+					      class="badge badge-lg badge-primary">${gesamtanzahlKunden}</span>
 				</div>
 				<a class="btn btn-primary"
 				   href="/kunden/create">
@@ -48,7 +48,7 @@
 
 			<div id="kundentabelleContainer"
 			     class="min-h-0 flex-1 overflow-auto rounded-box border border-base-300 bg-base-100 shadow-sm">
-				@template.pages.kunden.components.clientListWithDetailView(kundenListe = kundenListe, sortierInformation = sortierInformation)
+				@template.pages.kunden.components.clientTable(kundenListe = kundenListe, sortierInformation = sortierInformation)
 			</div>
 		</section>
 

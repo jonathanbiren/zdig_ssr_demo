@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class ClientSearchProperties(
 	@field:DecimalMin("0.0")
 	@field:DecimalMax("1.0")
-	val minimumSimilarity: Double = 0.3,
+	val minimumSimilarity: Double = 0.1,
 
 	@field:Min(1)
 	@field:Max(100)
