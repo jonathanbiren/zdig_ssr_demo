@@ -1,7 +1,11 @@
 @import org.zdigdemo.edge.repositories.VerpflichtungViewModel
 
 @param verpflichtungen: List<VerpflichtungViewModel>
+@param kundenName: String 
 
+<hx-partial id="detail-view-header" hx-swap="innerHTML">${kundenName}</hx-partial>
+
+<hx-partial id="detail-view-content" hx-swap="innerHTML">
 <div class="flex flex-col gap-4 p-4">
 	<ul>
 		@for(verpflichtung in verpflichtungen)
@@ -9,3 +13,4 @@
 		@endfor
 	</ul>
 </div>
+</hx-partial>

@@ -55,8 +55,6 @@
 		    hx-swap="outerHTML"
 		>
 		</tr>
-	@else
-		<tr>No results</tr>
 	@endif
 	</tbody>
 </table>

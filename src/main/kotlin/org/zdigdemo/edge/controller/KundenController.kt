@@ -115,7 +115,11 @@ class KundenController(
 	@GetMapping("/kunden/{id}/detail")
 	fun getKundenDetail(@PathVariable id: UUID): String {
 		val verpflichtungenDesKunden = verpflichtungenRepository.findByKundeId(id)
-		return templates.pagesKundenPartialsKundeVerpflichtungen(verpflichtungenDesKunden).render()
+		val kundenName = kundenRepository.getClient(id)?.toViewModel()?.name ?: ""
+		return templates.pagesKundenPartialsKundeVerpflichtungen(
+			verpflichtungen = verpflichtungenDesKunden,
+			kundenName = kundenName,
+		).render()
 	}
 
 	@HxRequest

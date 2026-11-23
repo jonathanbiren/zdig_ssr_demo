@@ -7,8 +7,6 @@
 		@click="detailViewOpen = true"
 		hx-trigger="click"
 		hx-get="/kunden/${kunde.id}/detail"
-		hx-target="#detail-view-content"
-		hx-swap="innerHTML"
 		hx-sync="this:replace"
 		hx-indicator="#kunden-detail-loading"
 >
