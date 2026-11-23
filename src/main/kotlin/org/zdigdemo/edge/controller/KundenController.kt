@@ -147,7 +147,7 @@ class KundenController(
 	@DeleteMapping("/kunden/{id}")
 	fun kundenLoeschen(@PathVariable id: UUID): String {
 		kundenRepository.deleteClient(id)
-		val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
+		val totalAmountOfClientsLeft = kundenRepository.getAllClientsCount()
 		return templates.pagesKundenPartialsKundenAnzahl(totalAmountOfClientsLeft).render()
 	}
 	//endregion

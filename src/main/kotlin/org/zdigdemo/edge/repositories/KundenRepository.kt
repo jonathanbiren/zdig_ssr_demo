@@ -36,18 +36,16 @@ class KundenRepository(
 		KUNDEN.STATUS
 	)
 
-	fun getAllClients(): List<KundenRecord> {
-		return dsl.selectFrom(KUNDEN).fetch()
-	}
-
 	fun getAllClientsCount(): Int {
 		return dsl.fetchCount(KUNDEN)
 	}
 
 	private fun getClientsCountFittingSearchterm(searchTerm: String): Int {
 		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHSPALTE)
-		return dsl.selectFrom(KUNDEN)
-			.where(similarity.greaterOrEqual(clientSearchProperties.minimumSimilarity.toFloat())).count()
+		return dsl.fetchCount(
+			KUNDEN,
+			similarity.greaterOrEqual(clientSearchProperties.minimumSimilarity.toFloat())
+		)
 	}
 
 	fun getClient(id: UUID): KundenRecord? =
@@ -71,7 +69,7 @@ class KundenRepository(
 		if (searchTerm.isNullOrEmpty()) {
 			return ClientPage(
 				data = dsl.selectFrom(KUNDEN)
-					.orderBy(sortField)
+					.orderBy(listOf(sortField, KUNDEN.ID))
 					.limit(clientSearchProperties.pageSize)
 					.fetch(),
 				amountSearchResult = getAllClientsCount()
@@ -81,7 +79,7 @@ class KundenRepository(
 			return ClientPage(
 				data = dsl.selectFrom(KUNDEN)
 					.where(similarity.greaterOrEqual(clientSearchProperties.minimumSimilarity.toFloat()))
-					.orderBy(similarity.desc())
+					.orderBy(listOf(similarity.desc(), sortField, KUNDEN.ID))
 					.limit(clientSearchProperties.pageSize)
 					.fetch(),
 				amountSearchResult = getClientsCountFittingSearchterm(searchTerm)
@@ -95,7 +93,7 @@ class KundenRepository(
 		searchTerm: String? = ""
 	): List<KundenRecord> {
 		val lastSeenClient = getClient(lastSeenId) ?: return emptyList()
-		val lastSeenValue = lastSeenClient.get(sortData.sortColumn.field)
+		val lastSeenValue = requireNotNull(lastSeenClient.get(sortData.sortColumn.field))
 		val sortField = when (sortData.sortDirection) {
 			SortDirection.ASC -> sortData.sortColumn.field.asc()
 			SortDirection.DESC -> sortData.sortColumn.field.desc()
@@ -109,10 +107,17 @@ class KundenRepository(
 				.fetch()
 		} else {
 			val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHSPALTE)
+			val lastSeenSimilarity = requireNotNull(
+				dsl.select(similarity)
+					.from(KUNDEN)
+					.where(KUNDEN.ID.eq(lastSeenId))
+					.fetchOne(similarity)
+			)
+
 			return dsl.selectFrom(KUNDEN)
 				.where(similarity.ge(clientSearchProperties.minimumSimilarity.toFloat()))
 				.orderBy(listOf(similarity.desc(), sortField, KUNDEN.ID))
-				.seek(similarity, lastSeenValue, lastSeenId)
+				.seek(lastSeenSimilarity, lastSeenValue, lastSeenId)
 				.limit(clientSearchProperties.pageSize)
 				.fetch()
 		}

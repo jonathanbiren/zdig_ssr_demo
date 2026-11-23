@@ -482,7 +482,7 @@ Or, when a locally installed artifact is specifically needed:
 
 Docker must be running because generation uses Testcontainers. Tests that start the application context may also use the Docker Compose database.
 
-The current suite is small and primarily verifies that the application context loads; it is not yet meaningful feature coverage. Prefer test placement that reflects the architecture:
+The current suite is small: it covers application-context startup and customer-repository pagination, but many application workflows remain uncovered. Prefer test placement that reflects the architecture:
 
 - Core rules: fast, pure Kotlin unit tests.
 - Repositories: PostgreSQL-backed tests for actual SQL, search, and pagination behavior.
