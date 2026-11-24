@@ -19,15 +19,23 @@ import java.util.*
 @ResponseBody
 @RequestMapping(produces = [MediaType.TEXT_HTML_VALUE])
 class KundenController(
-    private val kundenRepository: KundenRepository,
-    private val verpflichtungenRepository: VerpflichtungRepository,
-    private val templates: Templates,
+	private val kundenRepository: KundenRepository,
+	private val verpflichtungenRepository: VerpflichtungRepository,
+	private val templates: Templates,
 ) {
 
-    //region Full Page Endpoints
-    @GetMapping("/")
-    fun kundenMainPage(): String =
-        templates.pagesKundenIndex(kundenRepository.getAllClients().map { it.toViewModel() }, KundenSortData()).render()
+	//region Full Page Endpoints
+	@GetMapping("/")
+	fun kundenMainPage(): String {
+
+		val (data, _) = kundenRepository.getClients(sortData = SortData(), searchTerm = "")
+
+		return templates.pagesKundenIndex(
+			kundenListe = data.map { it.toViewModel() },
+			gesamtanzahlKunden = kundenRepository.getAllClientsCount(),
+			sortierInformation = SortData()
+		).render()
+	}
 
     @GetMapping("/kunden/{id}/edit")
     fun kundenEditieren(@PathVariable id: UUID): String {
@@ -100,56 +108,89 @@ class KundenController(
         )
     }
 
+	//region HTMX endpoints
+	@HxRequest
+	@GetMapping("/kunden")
+	fun generiereKundenListeSortiert(
+		@RequestParam(required = false) sortColumn: String?,
+		@RequestParam(required = false) sortDirection: String?,
+		@RequestParam(required = false) sucheingabe: String?
+	): String {
+		//The repository returns List<KundeViewModel>. The full template model is constructed in the controller
+		//It is the KundenSortColumn enum (allowList) as well as the SortDirection, which takes care of the input validation
+		val sortierInformation =
+			SortData(
+				sortColumn = KundenSortColumn.fromRequestName(sortColumn),
+				sortDirection = SortDirection.create(sortDirection)
+			)
+		val (data, amountSearchResults) = kundenRepository.getClients(
+			sortData = sortierInformation,
+			searchTerm = sucheingabe
+		)
 
-    //region HTMX endpoints
-    @HxRequest
-    @GetMapping("/kunden")
-    fun generiereKundenListeSortiert(
-        @RequestParam(required = false) sortColumn: String?,
-        @RequestParam(required = false) sortDirection: String?,
-        @RequestParam(required = false) sucheingabe: String?
-    ): String {
-        //The repository returns List<KundeViewModel>. The full template model is constructed in the controller
-        //It is the KundenSortColumn enmum (allowList) as well as the SortDirection, which takes care of the input validation
-        val sortierInformation =
-            KundenSortData(
-                sortColumn = KundenSortColumn.fromRequestName(sortColumn),
-                sortDirection = SortDirection.create(sortDirection)
-            )
-        val kundenListe = kundenRepository.getClients(sortierInformation, sucheingabe).map { it.toViewModel() }
+		return templates.pagesKundenPartialsClientTableWithSearchResultAmount(
+			kundenListe = data.map { it.toViewModel() },
+			anzahlSuchergebnnisse = amountSearchResults,
+			sortierInformation = sortierInformation,
+		).render()
 
-        return templates.pagesKundenComponentsClientListWithDetailView(
-            kundenListe = kundenListe,
-            sortierInformation = sortierInformation
-        ).render()
+	}
 
-    }
+	@HxRequest
+	@GetMapping("/kunden/{id}/detail")
+	fun getKundenDetail(@PathVariable id: UUID): String {
+		val verpflichtungenDesKunden = verpflichtungenRepository.findByKundeId(id)
+		val kundenName = kundenRepository.getClient(id)?.toViewModel()?.name ?: ""
+		return templates.pagesKundenPartialsKundeVerpflichtungen(
+			verpflichtungen = verpflichtungenDesKunden,
+			kundenName = kundenName,
+		).render()
+	}
 
-    @HxRequest
-    @GetMapping("/kunden/{id}/detail")
-    fun getKundenDetail(@PathVariable id: UUID): String {
-        val verpflichtungenDesKunden = verpflichtungenRepository.findByKundeId(id)
-        return templates.pagesKundenTablePartialsKundeVerpflichtungen(verpflichtungenDesKunden).render()
-    }
+	@HxRequest
+	@GetMapping("/kunden/nextPage/{cursor}")
+	fun nextPage(
+		@PathVariable("cursor") cursor: UUID,
+		@RequestParam(required = false) sortColumn: String?,
+		@RequestParam(required = false) sortDirection: String?,
+		@RequestParam(required = false) sucheingabe: String?
+	): String {
+		val sortData = SortData(
+			sortColumn = KundenSortColumn.fromRequestName(sortColumn),
+			sortDirection = SortDirection.create(sortDirection)
+		)
 
-    @HxRequest
-    @DeleteMapping("/kunden/{id}")
-    fun kundenLoeschen(@PathVariable id: UUID): String {
-        kundenRepository.deleteClient(id)
-        val totalAmountOfClientsLeft = kundenRepository.getAllClients().count()
-        return templates.pagesKundenTablePartialsKundenAnzahl(totalAmountOfClientsLeft).render()
-    }
-    //endregion
+		val kundenPage = kundenRepository.getNextClientPage(
+			lastSeenId = cursor,
+			sortData = sortData,
+			searchTerm = sucheingabe
+		).map { kundenRecord -> kundenRecord.toViewModel() }
+
+		return templates.pagesKundenPartialsTablePage(
+			kundenListe = kundenPage,
+			sortierInformation = sortData
+		).render()
+	}
+
+	@HxRequest
+	@DeleteMapping("/kunden/{id}")
+	fun kundenLoeschen(@PathVariable id: UUID): String {
+		kundenRepository.deleteClient(id)
+		val totalAmountOfClientsLeft = kundenRepository.getAllClientsCount()
+		return templates.pagesKundenPartialsKundenAnzahl(totalAmountOfClientsLeft).render()
+	}
+	//endregion
 }
 
+//region Mapping
 data class KundeDTO(
-    var id: UUID,
-    var name: String,
-    var zsNummer: String,
-    var kurzname: String,
-    var adresse: String,
-    var status: String,
-    var istBesondersSchuetzenswert: Boolean
+	var id: UUID,
+	var name: String,
+	var zsNummer: String,
+	var kurzname: String,
+	var adresse: String,
+	var status: String,
+	var istBesondersSchuetzenswert: Boolean
 )
 
 private fun KundenRecord.toDTO(): KundeDTO = KundeDTO(
@@ -163,32 +204,33 @@ private fun KundenRecord.toDTO(): KundeDTO = KundeDTO(
 )
 
 data class KundeViewModel(
-    val id: String,
-    val kurzname: String,
-    val name: String,
-    val zsNummer: Long,
-    val adresse: String,
-    val status: String,
-    val istBesondersSchuetzenswert: Boolean,
+	val id: String,
+	val kurzname: String,
+	val name: String,
+	val zsNummer: Long,
+	val adresse: String,
+	val status: String,
+	val istBesondersSchuetzenswert: Boolean,
 )
 
 private fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
-    id = id.toString(),
-    kurzname = kurzname!!,
-    name = name!!,
-    zsNummer = zsNummer!!,
-    adresse = adresse!!,
-    status = status!!,
-    istBesondersSchuetzenswert = besondersSchuetzenswert!!
+	id = id.toString(),
+	kurzname = kurzname!!,
+	name = name!!,
+	zsNummer = zsNummer!!,
+	adresse = adresse!!,
+	status = status!!,
+	istBesondersSchuetzenswert = besondersSchuetzenswert!!
 )
 
 private fun KundeDTO.toKunde() = Kunde.create(
-        id = id,
-        kundenName = name,
-        kundenKurzname = kurzname,
-        adresse = adresse,
-        kundenZsNummer = zsNummer,
-        status = status,
-        besondersSchuetzenswert = istBesondersSchuetzenswert
-    )
+	id = id,
+	kundenName = name,
+	kundenKurzname = kurzname,
+	adresse = adresse,
+	kundenZsNummer = zsNummer,
+	status = status,
+	besondersSchuetzenswert = istBesondersSchuetzenswert
+)
+//endregion
 

@@ -1,10 +1,10 @@
+@import java.lang.Integer
 @import org.zdigdemo.edge.controller.KundeViewModel
-@import org.zdigdemo.edge.repositories.KundenSortData
+@import org.zdigdemo.edge.repositories.SortData
 
 @param kundenListe: List<KundeViewModel>
-@param sortierInformation: KundenSortData
-<%--You can compute values from the data which is passed into the template --%>
-!{val anzahlElementeInKundenliste = kundenListe.size}
+@param gesamtanzahlKunden: Int
+@param sortierInformation: SortData
 
 @template.layout.layout(title = "SFA | Kunde", content = @`
 	<div
@@ -15,16 +15,23 @@
 		<section
 				class="col-span-2 flex min-h-0 flex-col gap-4"
 				:class="detailViewOpen ? 'lg:col-span-1' : 'lg:col-span-2'"
-	>
-		<div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
-			<div class="flex items-center gap-3">
-				<span class="font-medium">Kundenanzahl</span>
-				<span id="kundenanzahlContainer"
-				      class="badge badge-lg badge-primary">${anzahlElementeInKundenliste}</span>
-			</div>
-			<a class="btn btn-primary" href="/kunden/create">
-				Neuer Kunde
-			</a>
+		>
+			<div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center gap-3">
+						<span class="font-medium">Kundenanzahl</span>
+						<span id="kundenanzahlContainer"
+						      class="badge badge-lg badge-primary">${gesamtanzahlKunden}</span>
+					</div>
+					<div class="flex items-center gap-3">
+						<span class="font-medium">Suchergebnisse</span>
+						<span id="anzahlSuchergebnisseContainer" class="badge badge-lg badge-primary">0</span>
+					</div>
+				</div>
+				<a class="btn btn-primary"
+				   href="/kunden/create">
+					Neuer Kunde
+				</a>
 
 				<label class="form-control w-full max-w-xs">
 					<span class="label py-1">Search</span>
@@ -47,7 +54,7 @@
 
 			<div id="kundentabelleContainer"
 			     class="min-h-0 flex-1 overflow-auto rounded-box border border-base-300 bg-base-100 shadow-sm">
-				@template.pages.kunden.components.clientListWithDetailView(kundenListe = kundenListe, sortierInformation = sortierInformation)
+				@template.pages.kunden.components.clientTable(kundenListe = kundenListe, sortierInformation = sortierInformation)
 			</div>
 		</section>
 
@@ -57,7 +64,7 @@
 				x-transition.scale.20
 		>
 			<div class="flex shrink-0 items-center justify-between border-b border-base-300 p-4">
-				<h2 class="text-lg font-semibold">Kundendetails</h2>
+				<h2 id="detail-view-header" class="text-lg font-semibold">Kundendetails</h2>
 				<button
 						type="button"
 						class="btn btn-ghost btn-sm btn-circle"
@@ -67,7 +74,8 @@
 					✕
 				</button>
 			</div>
-			<div id="detail-view-content" class="min-h-0 flex-1 overflow-y-auto">
+			<div id="detail-view-content"
+			     class="min-h-0 flex-1 overflow-y-auto">
 				<p class="p-4 text-sm opacity-70">Wählen Sie einen Kunden aus.</p>
 			</div>
 		</aside>
