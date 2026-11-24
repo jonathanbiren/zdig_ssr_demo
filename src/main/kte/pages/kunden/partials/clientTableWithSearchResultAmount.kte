@@ -1,8 +1,8 @@
 @import org.zdigdemo.edge.controller.KundeViewModel
-@import org.zdigdemo.edge.repositories.SortData
+@import org.zdigdemo.edge.repositories.KundenSortData
 
 @param kundenListe: List<KundeViewModel>
-@param sortierInformation: SortData
+@param sortierInformation: KundenSortData
 @param anzahlSuchergebnnisse: Int
 
 @template.pages.kunden.components.clientTable(kundenListe = kundenListe, sortierInformation = sortierInformation)

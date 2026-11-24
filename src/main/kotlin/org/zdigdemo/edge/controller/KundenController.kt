@@ -28,19 +28,19 @@ class KundenController(
 	@GetMapping("/")
 	fun kundenMainPage(): String {
 
-		val (data, _) = kundenRepository.getClients(sortData = SortData(), searchTerm = "")
+		val (data, _) = kundenRepository.getClients(sortData = KundenSortData(), searchTerm = "")
 
 		return templates.pagesKundenIndex(
 			kundenListe = data.map { it.toViewModel() },
 			gesamtanzahlKunden = kundenRepository.getAllClientsCount(),
-			sortierInformation = SortData()
+			sortierInformation = KundenSortData()
 		).render()
 	}
 
     @GetMapping("/kunden/{id}/edit")
     fun kundenEditieren(@PathVariable id: UUID): String {
         val kunde = kundenRepository.getClient(id)
-            ?: return templates.pagesKundenTablePartialsError().render()
+            ?: return templates.pagesKundenPartialsError().render()
         return templates.pagesKundenFormsEditForm(kunde.toDTO()).render()
     }
 
@@ -119,7 +119,7 @@ class KundenController(
 		//The repository returns List<KundeViewModel>. The full template model is constructed in the controller
 		//It is the KundenSortColumn enum (allowList) as well as the SortDirection, which takes care of the input validation
 		val sortierInformation =
-			SortData(
+			KundenSortData(
 				sortColumn = KundenSortColumn.fromRequestName(sortColumn),
 				sortDirection = SortDirection.create(sortDirection)
 			)
@@ -155,7 +155,7 @@ class KundenController(
 		@RequestParam(required = false) sortDirection: String?,
 		@RequestParam(required = false) sucheingabe: String?
 	): String {
-		val sortData = SortData(
+		val sortData = KundenSortData(
 			sortColumn = KundenSortColumn.fromRequestName(sortColumn),
 			sortDirection = SortDirection.create(sortDirection)
 		)

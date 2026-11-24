@@ -2,6 +2,7 @@
 @import org.zdigdemo.edge.repositories.VerpflichtungSortData
 
 @param verpflichtungenListe: List<VerpflichtungViewModel2>
+@param gesamtanzahlVerpflichtungen: Int
 @param sortierInformation: VerpflichtungSortData
 
 !{val anzahlElementeInVerpflichtungenliste = verpflichtungenListe.size}
@@ -17,10 +18,16 @@
 				:class="detailViewOpen ? 'lg:col-span-1' : 'lg:col-span-2'"
 		>
 			<div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
-				<div class="flex items-center gap-3">
-					<span class="font-medium">Verpflichtungsanzahl</span>
-					<span id="verpflichutngenAnzahlContainer"
-						  class="badge badge-lg badge-primary">${anzahlElementeInVerpflichtungenliste}</span>
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center gap-3">
+						<span class="font-medium">Verpflichtungsanzahl</span>
+						<span id="verpflichtungenAnzahlContainer"
+							  class="badge badge-lg badge-primary">${gesamtanzahlVerpflichtungen}</span>
+					</div>
+					<div class="flex items-center gap-3">
+						<span class="font-medium">Suchergebnisse</span>
+						<span id="anzahlVerpflichtungenSuchergebnisseContainer" class="badge badge-lg badge-primary">0</span>
+					</div>
 				</div>
 				<a class="btn btn-primary" href="/verpflichtungen/create">
 					Neue Verpflichtung

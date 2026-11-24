@@ -1,0 +1,9 @@
+@import org.zdigdemo.edge.controller.VerpflichtungViewModel2
+@import org.zdigdemo.edge.repositories.VerpflichtungSortData
+
+@param verpflichtungenListe: List<VerpflichtungViewModel2>
+@param sortierInformation: VerpflichtungSortData
+@param anzahlSuchergebnisse: Int
+
+@template.pages.verpflichtungen.components.obligationListWithDetailView(verpflichtungenListe = verpflichtungenListe, sortierInformation = sortierInformation)
+<hx-partial id="anzahlVerpflichtungenSuchergebnisseContainer" hx-swap="innerHTML">${anzahlSuchergebnisse}</hx-partial>

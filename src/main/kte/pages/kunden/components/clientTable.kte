@@ -8,7 +8,7 @@
 <table class="table table-pin-rows table-zebra table-lg">
 	<thead>
 	<tr>
-		@for(entry in SortData.columnNames)
+		@for(entry in KundenSortData.columnNames)
 			!{val currentColumnIsSortingColumn = sortierInformation.sortColumn.requestName == entry.requestName}
 			!{val nextSortDirection = if(currentColumnIsSortingColumn) sortierInformation.sortDirection.invert() else SortDirection.ASC}
 

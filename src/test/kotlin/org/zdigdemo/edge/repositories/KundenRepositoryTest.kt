@@ -20,7 +20,7 @@ class KundenRepositoryTest {
 
 	@Test
 	fun `unfiltered pagination returns the reported count without duplicates`() {
-		val sortData = SortData()
+		val sortData = KundenSortData()
 		val firstPage = kundenRepository.getClients(sortData = sortData, searchTerm = "")
 
 		val loadedClients = loadAllPages(firstPage, sortData, searchTerm = "")
@@ -30,7 +30,7 @@ class KundenRepositoryTest {
 
 	@Test
 	fun `search pagination returns the reported count without duplicates`() {
-		val sortData = SortData()
+		val sortData = KundenSortData()
 		val searchTerm = "Aktiv"
 		val firstPage = kundenRepository.getClients(sortData = sortData, searchTerm = searchTerm)
 		assertTrue(
@@ -45,7 +45,7 @@ class KundenRepositoryTest {
 
 	private fun loadAllPages(
 		firstPage: ClientPage,
-		sortData: SortData,
+		sortData: KundenSortData,
 		searchTerm: String
 	): List<KundenRecord> {
 		val loadedClients = firstPage.data.toMutableList()

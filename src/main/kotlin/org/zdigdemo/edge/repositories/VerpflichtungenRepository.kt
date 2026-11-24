@@ -2,12 +2,14 @@ package org.zdigdemo.edge.repositories
 
 import org.jooq.DSLContext
 import org.jooq.Field
+import org.jooq.Record
 import org.jooq.impl.DSL
-import org.zdigdemo.jooq.tables.records.VerpflichtungenRecord
-import org.zdigdemo.jooq.tables.references.VERPFLICHTUNGEN
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
+import org.zdigdemo.config.ObligationSearchProperties
+import org.zdigdemo.jooq.tables.records.VerpflichtungenRecord
 import org.zdigdemo.jooq.tables.references.KUNDEN
+import org.zdigdemo.jooq.tables.references.VERPFLICHTUNGEN
 import java.time.OffsetDateTime
 import java.util.*
 import kotlin.enums.EnumEntries
@@ -20,90 +22,157 @@ import kotlin.enums.EnumEntries
 @Transactional
 @Repository
 class VerpflichtungRepository(
-    private val dsl: DSLContext,
+	private val dsl: DSLContext,
+	private val obligationSearchProperties: ObligationSearchProperties,
 ) {
-    fun getVerpflichtungen(
-        sortierInformation: VerpflichtungSortData = VerpflichtungSortData(),
-        sucheingabe: String? = null,
-    ): List<org.zdigdemo.edge.controller.VerpflichtungViewModel2> {
+	private val VERPFLICHTUNGEN_SUCHSPALTE: Field<String?> = DSL.concat(
+		VERPFLICHTUNGEN.BEZEICHNUNG,
+		DSL.inline(" "),
+		VERPFLICHTUNGEN.BETRAG_CENT.cast(String::class.java),
+		DSL.inline(" "),
+		KUNDEN.NAME
+	)
+
+	fun getAllVerpflichtungenCount(): Int =
+		dsl.fetchCount(VERPFLICHTUNGEN)
+
+	private fun getVerpflichtungenCountFittingSearchterm(searchTerm: String): Int =
+		dsl.fetchCount(
+			dsl.select(VERPFLICHTUNGEN.ID)
+				.from(VERPFLICHTUNGEN)
+				.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
+				.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(searchTerm))
+		)
+
+	fun getVerpflichtungen(
+		sortierInformation: VerpflichtungSortData = VerpflichtungSortData(),
+		sucheingabe: String? = "",
+	): VerpflichtungPage {
         val sortField = when (sortierInformation.sortDirection) {
             SortDirection.ASC -> sortierInformation.sortColumn.field.asc()
             SortDirection.DESC -> sortierInformation.sortColumn.field.desc()
         }
 
-        val verpflichtungenSuchtext: Field<String?> = DSL.concat(
-            VERPFLICHTUNGEN.BEZEICHNUNG,
-            DSL.inline(" "),
-            VERPFLICHTUNGEN.BETRAG_CENT.cast(String::class.java),
-            DSL.inline(" "),
-            KUNDEN.NAME
-        )
+		val baseQuery = dsl.select(
+			VERPFLICHTUNGEN.ID,
+			VERPFLICHTUNGEN.KUNDE_ID,
+			KUNDEN.NAME,
+			VERPFLICHTUNGEN.BEZEICHNUNG,
+			VERPFLICHTUNGEN.BETRAG_CENT,
+		)
+			.from(VERPFLICHTUNGEN)
+			.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
 
-        val query = dsl.select(
-            VERPFLICHTUNGEN.ID,
-            VERPFLICHTUNGEN.KUNDE_ID,
-            KUNDEN.NAME,
-            VERPFLICHTUNGEN.BEZEICHNUNG,
-            VERPFLICHTUNGEN.BETRAG_CENT,
-        )
-            .from(VERPFLICHTUNGEN)
-            .join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
+		val filteredQuery = if (sucheingabe.isNullOrEmpty()) {
+			baseQuery
+		} else {
+			baseQuery.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(sucheingabe))
+		}
 
-        val filteredQuery = if (sucheingabe.isNullOrBlank()) {
-            query
-        } else {
-            query.where(verpflichtungenSuchtext.containsIgnoreCase(sucheingabe))
-        }
+		val amountSearchResult = if (sucheingabe.isNullOrEmpty()) {
+			getAllVerpflichtungenCount()
+		} else {
+			getVerpflichtungenCountFittingSearchterm(sucheingabe)
+		}
 
-        return filteredQuery
-            .orderBy(sortField)
-            .fetch()
-            .map {
-                org.zdigdemo.edge.controller.VerpflichtungViewModel2(
-                    id = it.get(VERPFLICHTUNGEN.ID)!!.toString(),
-                    kundeId = it.get(VERPFLICHTUNGEN.KUNDE_ID)!!.toString(),
-                    kundeName = it.get(KUNDEN.NAME)!!,
-                    verpflichtungName = it.get(VERPFLICHTUNGEN.BEZEICHNUNG)!!,
-                    verpflichtungBetrag = it.get(VERPFLICHTUNGEN.BETRAG_CENT)!!.toString(),
-                    personId = UUID.randomUUID().toString(),
-                    personName = "Test"
-                )
-            }
+		return VerpflichtungPage(
+			data = filteredQuery
+				.orderBy(listOf(sortField, VERPFLICHTUNGEN.ID))
+				.limit(obligationSearchProperties.pageSize)
+				.fetch()
+				.map { it.toVerpflichtungViewModel2() },
+			amountSearchResult = amountSearchResult
+		)
     }
-    // region DAO methods
-    // You should investigate whether it is a better practice to directly return the type of the DAO from
-    // the domain layer or to map the DAO type to the domain layer first. Intuitively, given that we don't want
-    // to have dependencies flowing from domain -> data access, I would say mapping it is the better choice.
-    fun findById(id: UUID): VerpflichtungenRecord? =
-        dsl.selectFrom(VERPFLICHTUNGEN).where(VERPFLICHTUNGEN.ID.eq(id)).fetchOne()
 
-    // The DAO API only offers separate insert()/update(); an upsert (INSERT .. ON CONFLICT
-    // .. DO UPDATE) is beyond it, so this stays a DSL query as well.
-    /*	fun save(verpflichtung: VerpflichtungViewModel): VerpflichtungViewModel {
+
+	fun getNextVerpflichtungenPage(
+		lastSeenId: UUID,
+		sortierInformation: VerpflichtungSortData,
+		sucheingabe: String? = "",
+	): List<org.zdigdemo.edge.controller.VerpflichtungViewModel2> {
+		val lastSeenSortValue = getLastSeenVerpflichtungSortValue(
+			lastSeenId = lastSeenId,
+			sortierInformation = sortierInformation
+		) ?: return emptyList()
+
+		val sortField = when (sortierInformation.sortDirection) {
+			SortDirection.ASC -> sortierInformation.sortColumn.field.asc()
+			SortDirection.DESC -> sortierInformation.sortColumn.field.desc()
+		}
+
+		val baseQuery = dsl.select(
+			VERPFLICHTUNGEN.ID,
+			VERPFLICHTUNGEN.KUNDE_ID,
+			KUNDEN.NAME,
+			VERPFLICHTUNGEN.BEZEICHNUNG,
+			VERPFLICHTUNGEN.BETRAG_CENT,
+		)
+			.from(VERPFLICHTUNGEN)
+			.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
+
+		val filteredQuery = if (sucheingabe.isNullOrEmpty()) {
+			baseQuery
+		} else {
+			baseQuery.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(sucheingabe))
+		}
+
+		return filteredQuery
+			.orderBy(listOf(sortField, VERPFLICHTUNGEN.ID))
+			.seek(lastSeenSortValue, lastSeenId)
+			.limit(obligationSearchProperties.pageSize)
+			.fetch()
+			.map { it.toVerpflichtungViewModel2() }
+	}
+
+	private fun getLastSeenVerpflichtungSortValue(
+		lastSeenId: UUID,
+		sortierInformation: VerpflichtungSortData
+	): Any? =
+		dsl.select(sortierInformation.sortColumn.field)
+			.from(VERPFLICHTUNGEN)
+			.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
+			.where(VERPFLICHTUNGEN.ID.eq(lastSeenId))
+			.fetchOne(sortierInformation.sortColumn.field)
+
+	// region DAO methods
+	// You should investigate whether it is a better practice to directly return the type of the DAO from
+	// the domain layer or to map the DAO type to the domain layer first. Intuitively, given that we don't want
+	// to have dependencies flowing from domain -> data access, I would say mapping it is the better choice.
+	fun findById(id: UUID): VerpflichtungenRecord? =
+		dsl.selectFrom(VERPFLICHTUNGEN).where(VERPFLICHTUNGEN.ID.eq(id)).fetchOne()
+
+	// The DAO API only offers separate insert()/update(); an upsert (INSERT .. ON CONFLICT
+	// .. DO UPDATE) is beyond it, so this stays a DSL query as well.
+	/*	fun save(verpflichtung: VerpflichtungViewModel): VerpflichtungViewModel {
             verpflichtungenDao.insert(verpflichtung.toDao())
             return verpflichtung
         }*/
 
-    fun deleteById(id: UUID) {
-        dsl.deleteFrom(VERPFLICHTUNGEN).where(VERPFLICHTUNGEN.ID.eq(id)).execute()
-    }
-    //endregion
+	fun deleteById(id: UUID) {
+		dsl.deleteFrom(VERPFLICHTUNGEN).where(VERPFLICHTUNGEN.ID.eq(id)).execute()
+	}
+	//endregion
 
-    //region DSL Methods
-    // The DAO fetcher (fetchByKundeId) cannot ORDER BY, but chronological order is part
-    // of this query's contract — so it stays a DSL query.
-    // Furthermore we have very basic (essentially 1 to 1 mapping) from 'VerpflichtungenRecord' (generated jOOQ type)
-    // into 'Verpflichtung' (domain type), which is why we use '.into()'. For more complex mapping, you will need
-    // to write an explicit mapper yourself.
-    fun findByKundeId(kundeId: UUID): List<VerpflichtungViewModel> =
-        dsl.selectFrom(VERPFLICHTUNGEN)
-            .where(VERPFLICHTUNGEN.KUNDE_ID.eq(kundeId))
-            .orderBy(VERPFLICHTUNGEN.ERSTELLT_AM)
-            .fetch().map { it.toVerpflichtungViewModel() }
-    //endregion
-
-
+	//region DSL Methods
+	// The DAO fetcher (fetchByKundeId) cannot ORDER BY, but chronological order is part
+	// of this query's contract — so it stays a DSL query.
+	// Furthermore we have very basic (essentially 1 to 1 mapping) from 'VerpflichtungenRecord' (generated jOOQ type)
+	// into 'Verpflichtung' (domain type), which is why we use '.into()'. For more complex mapping, you will need
+	// to write an explicit mapper yourself.
+	fun findByKundeId(kundeId: UUID): List<VerpflichtungViewModel> =
+		dsl.selectFrom(VERPFLICHTUNGEN)
+			.where(VERPFLICHTUNGEN.KUNDE_ID.eq(kundeId))
+			.orderBy(VERPFLICHTUNGEN.ERSTELLT_AM)
+			.fetch().map { it.toVerpflichtungViewModel() }
+	//endregion
 }
+
+
+data class VerpflichtungPage(
+	val data: List<org.zdigdemo.edge.controller.VerpflichtungViewModel2>,
+	val amountSearchResult: Int
+)
 
 class VerpflichtungViewModel(
     var id: UUID,
@@ -113,10 +182,6 @@ class VerpflichtungViewModel(
     var erstelltAm: OffsetDateTime = OffsetDateTime.now(),
 )
 
-//region Mappers
-// See KundenRepository for why the non-null assertions are safe, and why there is one
-// mapper per generated type (POJO for the DAO, Record for DSL queries).
-
 /*fun VerpflichtungViewModel.toDao() = Verpflichtungen(
 	id = this.id,
 	kundeId = this.kundeId,
@@ -124,11 +189,26 @@ class VerpflichtungViewModel(
 	betragCent = this.betragCent,
 	erstelltAm = this.erstelltAm
 )*/
+
+private fun Record.toVerpflichtungViewModel2(): org.zdigdemo.edge.controller.VerpflichtungViewModel2 =
+	org.zdigdemo.edge.controller.VerpflichtungViewModel2(
+		id = get(VERPFLICHTUNGEN.ID)!!.toString(),
+		kundeId = get(VERPFLICHTUNGEN.KUNDE_ID)!!.toString(),
+		kundeName = get(KUNDEN.NAME)!!,
+		verpflichtungName = get(VERPFLICHTUNGEN.BEZEICHNUNG)!!,
+		verpflichtungBetrag = get(VERPFLICHTUNGEN.BETRAG_CENT)!!.toString(),
+		personId = UUID.randomUUID().toString(),
+		personName = "Test"
+	)
+
 data class VerpflichtungSortData(
-    val columnNames: EnumEntries<VerpflichtungSortColumn> = VerpflichtungSortColumn.entries,
-    val sortColumn: VerpflichtungSortColumn = VerpflichtungSortColumn.BEZEICHNUNG,
-    val sortDirection: SortDirection = SortDirection.ASC
-)
+	val sortColumn: VerpflichtungSortColumn = VerpflichtungSortColumn.BEZEICHNUNG,
+	val sortDirection: SortDirection = SortDirection.ASC
+) {
+	companion object {
+		val columnNames: EnumEntries<VerpflichtungSortColumn> = VerpflichtungSortColumn.entries
+	}
+}
 
 enum class VerpflichtungSortColumn(
     val requestName: String,

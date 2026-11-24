@@ -8,7 +8,7 @@
 <table class="table table-pin-rows table-zebra table-lg">
     <thead>
     <tr>
-        @for(entry in sortierInformation.columnNames)
+        @for(entry in VerpflichtungSortData.columnNames)
             !{val currentColumnIsSortingColumn = sortierInformation.sortColumn.requestName == entry.requestName}
             !{val nextSortDirection = if(currentColumnIsSortingColumn) sortierInformation.sortDirection.invert() else SortDirection.ASC}
 
@@ -40,34 +40,46 @@
     </tr>
     </thead>
     <tbody>
-    @for(verpflichtung in verpflichtungenListe)
-        <tr class="cursor-pointer row-hover"
-            @click="detailViewOpen = true"
-            hx-trigger="click"
-            hx-get="/verpflichtung/${verpflichtung.id}/detail"
-            hx-target="#detail-view-content"
-            hx-swap="innerHTML"
-            hx-sync="this:replace"
-            hx-indicator="#kunden-detail-loading">
+    @if(verpflichtungenListe.isNotEmpty())
+        @for(verpflichtung in verpflichtungenListe)
+            <tr class="cursor-pointer row-hover"
+                @click="detailViewOpen = true"
+                hx-trigger="click"
+                hx-get="/verpflichtung/${verpflichtung.id}/detail"
+                hx-target="#detail-view-content"
+                hx-swap="innerHTML"
+                hx-sync="this:replace"
+                hx-indicator="#kunden-detail-loading">
 
-            <td>${verpflichtung.verpflichtungName}</td>
-            <td>${verpflichtung.kundeName}</td>
-            <td>${verpflichtung.verpflichtungBetrag}</td>
-            <td @click.stop>
-                <a class="btn btn-neutral btn-sm"
-                   href="/verpflichtung/${verpflichtung.id}/edit">
-                    Edit
-                </a>
-                <button class="btn btn-neutral btn-sm"
-                        hx-trigger="click"
-                        hx-confirm="Sind Sie sich sicher, dass Sie den Kunden löschen wollen?"
-                        hx-delete="/verpflichtung/${verpflichtung.id}"
-                >
-                    Delete
-                </button>
-            </td>
+                <td>${verpflichtung.verpflichtungName}</td>
+                <td>${verpflichtung.kundeName}</td>
+                <td>${verpflichtung.verpflichtungBetrag}</td>
+                <td @click.stop>
+                    <a class="btn btn-neutral btn-sm"
+                       href="/verpflichtung/${verpflichtung.id}/edit">
+                        Edit
+                    </a>
+                    <button class="btn btn-neutral btn-sm"
+                            hx-trigger="click"
+                            hx-confirm="Sind Sie sich sicher, dass Sie die Verpflichtung löschen wollen?"
+                            hx-delete="/verpflichtung/${verpflichtung.id}"
+                    >
+                        Delete
+                    </button>
+                </td>
+            </tr>
+        @endfor
+        <tr hx-trigger="intersect once"
+            hx-get="/verpflichtungen/nextPage/${verpflichtungenListe.last().id}"
+            hx-vals='{
+                "sortColumn": "${sortierInformation.sortColumn.requestName}",
+                "sortDirection": "${sortierInformation.sortDirection.value}"
+            }'
+            hx-include="#searchInput"
+            hx-target="this"
+            hx-swap="outerHTML"
+        >
         </tr>
-
-    @endfor
+    @endif
     </tbody>
 </table>

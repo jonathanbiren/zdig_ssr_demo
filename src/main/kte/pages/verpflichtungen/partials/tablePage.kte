@@ -1,0 +1,51 @@
+@import org.zdigdemo.edge.controller.VerpflichtungViewModel2
+@import org.zdigdemo.edge.repositories.VerpflichtungSortData
+
+@param verpflichtungenListe: List<VerpflichtungViewModel2>
+@param sortierInformation: VerpflichtungSortData
+
+@if(verpflichtungenListe.isNotEmpty())
+    @for(verpflichtung in verpflichtungenListe)
+        <tr class="cursor-pointer row-hover"
+            @click="detailViewOpen = true"
+            hx-trigger="click"
+            hx-get="/verpflichtung/${verpflichtung.id}/detail"
+            hx-target="#detail-view-content"
+            hx-swap="innerHTML"
+            hx-sync="this:replace"
+            hx-indicator="#kunden-detail-loading">
+
+            <td>${verpflichtung.verpflichtungName}</td>
+            <td>${verpflichtung.kundeName}</td>
+            <td>${verpflichtung.verpflichtungBetrag}</td>
+            <td @click.stop>
+                <a class="btn btn-neutral btn-sm"
+                   href="/verpflichtung/${verpflichtung.id}/edit">
+                    Edit
+                </a>
+                <button class="btn btn-neutral btn-sm"
+                        hx-trigger="click"
+                        hx-confirm="Sind Sie sich sicher, dass Sie die Verpflichtung löschen wollen?"
+                        hx-delete="/verpflichtung/${verpflichtung.id}"
+                >
+                    Delete
+                </button>
+            </td>
+        </tr>
+    @endfor
+    <tr hx-trigger="intersect once"
+        hx-get="/verpflichtungen/nextPage/${verpflichtungenListe.last().id}"
+        hx-vals='{
+	        "sortColumn": "${sortierInformation.sortColumn.requestName}",
+	        "sortDirection": "${sortierInformation.sortDirection.value}"
+	    }'
+        hx-include="#searchInput"
+        hx-target="this"
+        hx-swap="outerHTML"
+    >
+    </tr>
+@else
+    <tr>
+        <td colspan="4">Alle Verpflichtungen wurden geladen</td>
+    </tr>
+@endif

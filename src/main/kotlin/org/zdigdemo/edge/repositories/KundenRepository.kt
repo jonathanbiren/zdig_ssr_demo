@@ -58,7 +58,7 @@ class KundenRepository(
 
 
 	fun getClients(
-		sortData: SortData = SortData(),
+		sortData: KundenSortData = KundenSortData(),
 		searchTerm: String? = ""
 	): ClientPage {
 		val sortField = when (sortData.sortDirection) {
@@ -89,7 +89,7 @@ class KundenRepository(
 
 	fun getNextClientPage(
 		lastSeenId: UUID,
-		sortData: SortData,
+		sortData: KundenSortData,
 		searchTerm: String? = ""
 	): List<KundenRecord> {
 		val lastSeenClient = getClient(lastSeenId) ?: return emptyList()
@@ -205,7 +205,7 @@ enum class KundenSortColumn(
 	}
 }
 
-data class SortData(
+data class KundenSortData(
 	val sortColumn: KundenSortColumn = KundenSortColumn.KURZNAME,
 	val sortDirection: SortDirection = SortDirection.ASC
 ) {
