@@ -6,44 +6,29 @@ import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import org.zdigdemo.config.ClientSearchProperties
+import org.zdigdemo.core.kunde.Kunde
 import org.zdigdemo.jooq.routines.references.wordSimilarity
-import org.zdigdemo.jooq.tables.daos.KundenDao
-import org.zdigdemo.jooq.tables.pojos.Kunden
 import org.zdigdemo.jooq.tables.records.KundenRecord
 import org.zdigdemo.jooq.tables.references.KUNDEN
 import java.util.*
 import kotlin.enums.EnumEntries
 
 /**
- * Plain single-table CRUD goes through the generated [org.zdigdemo.jooq.tables.daos.KundenDao]. Anything the fixed
  * DAO API cannot express (joins, MULTISET aggregation, the trigram search) stays a
  * handwritten DSL query — that split is the intended jOOQ usage, not a workaround.
  *
  * DAO and DSL calls share Spring Boot's jOOQ Configuration, so both participate in
  * this class's transaction.
  */
+
 @Transactional
 @Repository
 class KundenRepository(
 	private val dsl: DSLContext,
-	private val kundenDao: KundenDao,
 	private val clientSearchProperties: ClientSearchProperties,
 ) {
 
-	//region DAO Methods
-	fun getAllClients(): List<KundeViewModel> {
-		return kundenDao.findAll().map { kundeDao -> kundeDao.toViewModel() }
-	}
-
-	fun getClient(id: UUID): KundeViewModel? =
-		kundenDao.findById(id)?.toViewModel()
-
-	//* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
-	//* ON DELETE CASCADE.
-	fun deleteClient(id: UUID) = kundenDao.deleteById(id)
-	//endregion
-
-	private val KUNDEN_SUCHTEXT: Field<String?> = DSL.concat(
+	private val KUNDEN_SUCHSPALTE: Field<String?> = DSL.concat(
 		KUNDEN.KURZNAME, DSL.inline(" "),
 		KUNDEN.NAME, DSL.inline(" "),
 		KUNDEN.ZS_NUMMER.cast(String::class.java), DSL.inline(" "),
@@ -51,43 +36,109 @@ class KundenRepository(
 		KUNDEN.STATUS
 	)
 
-	// Custom Query using Postgres specific word_similarity function
-	fun getAllClientsFittingSearchterm(searchTerm: String): List<KundeViewModel> {
-		// wordSimilarity is the pg_trgm function word_similarity(), reverse-engineered
-		// by the code generator into a typed Kotlin function. No string SQL anywhere.
-		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
-		return dsl.selectFrom(KUNDEN)
-			.where(similarity.ge(clientSearchProperties.minimumSimilarity.toFloat()))
-			.orderBy(similarity.desc())
-			.limit(clientSearchProperties.maxAmountOfSearchResults)
-			.fetch()
-			.map { kundenRecord -> kundenRecord.toViewModel() }
+	fun getAllClientsCount(): Int {
+		return dsl.fetchCount(KUNDEN)
 	}
+
+	private fun getClientsCountFittingSearchterm(searchTerm: String): Int {
+		val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHSPALTE)
+		return dsl.fetchCount(
+			KUNDEN,
+			similarity.greaterOrEqual(clientSearchProperties.minimumSimilarity.toFloat())
+		)
+	}
+
+	fun getClient(id: UUID): KundenRecord? =
+		dsl.selectFrom(KUNDEN).where(KUNDEN.ID.eq(id))
+			.fetchOne()
+
+	//* Cascading Deletion for the Kunde's Verpflichtungen is done at the database level through [[V4__create_verpflichtungen.sql]]
+	//* ON DELETE CASCADE.
+	fun deleteClient(id: UUID) = dsl.deleteFrom(KUNDEN).where(KUNDEN.ID.eq(id)).execute()
+
 
 	fun getClients(
 		sortData: SortData = SortData(),
-		searchTerm: String?
-	): List<KundeViewModel> {
-
+		searchTerm: String? = ""
+	): ClientPage {
 		val sortField = when (sortData.sortDirection) {
 			SortDirection.ASC -> sortData.sortColumn.field.asc()
 			SortDirection.DESC -> sortData.sortColumn.field.desc()
 		}
 
 		if (searchTerm.isNullOrEmpty()) {
-			return dsl.selectFrom(KUNDEN).orderBy(sortField).fetch().map { it.toViewModel() }
+			return ClientPage(
+				data = dsl.selectFrom(KUNDEN)
+					.orderBy(listOf(sortField, KUNDEN.ID))
+					.limit(clientSearchProperties.pageSize)
+					.fetch(),
+				amountSearchResult = getAllClientsCount()
+			)
 		} else {
-			val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHTEXT)
-			return dsl.selectFrom(KUNDEN)
-				.where(similarity.ge(clientSearchProperties.minimumSimilarity.toFloat()))
-				.orderBy(similarity.desc(), sortField)
-				.limit(clientSearchProperties.maxAmountOfSearchResults)
-				.fetch()
-				.map { kundenRecord -> kundenRecord.toViewModel() }
-
+			val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHSPALTE)
+			return ClientPage(
+				data = dsl.selectFrom(KUNDEN)
+					.where(similarity.greaterOrEqual(clientSearchProperties.minimumSimilarity.toFloat()))
+					.orderBy(listOf(similarity.desc(), sortField, KUNDEN.ID))
+					.limit(clientSearchProperties.pageSize)
+					.fetch(),
+				amountSearchResult = getClientsCountFittingSearchterm(searchTerm)
+			)
 		}
 	}
+
+	fun getNextClientPage(
+		lastSeenId: UUID,
+		sortData: SortData,
+		searchTerm: String? = ""
+	): List<KundenRecord> {
+		val lastSeenClient = getClient(lastSeenId) ?: return emptyList()
+		val lastSeenValue = requireNotNull(lastSeenClient.get(sortData.sortColumn.field))
+		val sortField = when (sortData.sortDirection) {
+			SortDirection.ASC -> sortData.sortColumn.field.asc()
+			SortDirection.DESC -> sortData.sortColumn.field.desc()
+		}
+
+		if (searchTerm.isNullOrEmpty()) {
+			return dsl.selectFrom(KUNDEN)
+				.orderBy(listOf(sortField, KUNDEN.ID))
+				.seek(lastSeenValue, lastSeenId)
+				.limit(clientSearchProperties.pageSize)
+				.fetch()
+		} else {
+			val similarity = wordSimilarity(DSL.`val`(searchTerm), KUNDEN_SUCHSPALTE)
+			val lastSeenSimilarity = requireNotNull(
+				dsl.select(similarity)
+					.from(KUNDEN)
+					.where(KUNDEN.ID.eq(lastSeenId))
+					.fetchOne(similarity)
+			)
+
+			return dsl.selectFrom(KUNDEN)
+				.where(similarity.ge(clientSearchProperties.minimumSimilarity.toFloat()))
+				.orderBy(listOf(similarity.desc(), sortField, KUNDEN.ID))
+				.seek(lastSeenSimilarity, lastSeenValue, lastSeenId)
+				.limit(clientSearchProperties.pageSize)
+				.fetch()
+		}
+	}
+
+	fun editExistingClient(kunde: Kunde): Kunde {
+		dsl.update(KUNDEN)
+			.set(KUNDEN.KURZNAME, kunde.kundenKurzname.value)
+			.set(KUNDEN.NAME, kunde.kundenName.value)
+			.set(KUNDEN.ZS_NUMMER, kunde.kundenZsNummer.value)
+			.set(KUNDEN.ADRESSE, kunde.adresse)
+			.set(KUNDEN.STATUS, kunde.status)
+			.set(KUNDEN.BESONDERS_SCHUETZENSWERT, kunde.besondersSchuetzenswert)
+			.where(KUNDEN.ID.eq(kunde.id))
+			.execute()
+		return kunde
+	}
+//endregion
 }
+
+data class ClientPage(val data: List<KundenRecord>, val amountSearchResult: Int)
 
 //region Sorting
 enum class SortDirection(val value: String) {
@@ -143,10 +194,13 @@ enum class KundenSortColumn(
 }
 
 data class SortData(
-	val columnNames: EnumEntries<KundenSortColumn> = KundenSortColumn.entries,
 	val sortColumn: KundenSortColumn = KundenSortColumn.KURZNAME,
 	val sortDirection: SortDirection = SortDirection.ASC
-)
+) {
+	companion object {
+		val columnNames: EnumEntries<KundenSortColumn> = KundenSortColumn.entries
+	}
+}
 //endregion
 
 //region Mappers
@@ -155,35 +209,15 @@ data class SortData(
 // the schema (see src/main/resources/db/migration), so these non-null assertions are backed
 // by the database itself. DAO methods return generated POJOs, DSL queries return Records —
 // hence one mapper per generated type.
-data class KundeViewModel(
-	val id: String,
-	val kurzname: String,
-	val name: String,
-	val zsNummer: Long,
-	val adresse: String,
-	val status: String,
-	val istBesondersSchuetzenswert: Boolean,
-) {}
 
-//Kunden is DAO type
-fun Kunden.toViewModel(): KundeViewModel = KundeViewModel(
-	id = this.id.toString(),
-	kurzname = this.kurzname!!,
-	name = this.name!!,
-	zsNummer = this.zsNummer!!,
-	adresse = this.adresse!!,
-	status = this.status!!,
-	istBesondersSchuetzenswert = this.besondersSchuetzenswert!!
-)
 
-//KundenRecord ist DSLContext type
-fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
-	id = id.toString(),
-	kurzname = kurzname!!,
-	name = name!!,
-	zsNummer = zsNummer!!,
-	adresse = adresse!!,
-	status = status!!,
-	istBesondersSchuetzenswert = besondersSchuetzenswert!!
+fun Kunde.toRecord(): KundenRecord = KundenRecord(
+	id = id,
+	kurzname = kundenKurzname.value,
+	name = kundenName.value,
+	zsNummer = kundenZsNummer.value,
+	adresse = adresse,
+	status = status,
+	besondersSchuetzenswert = besondersSchuetzenswert
 )
 //endregion

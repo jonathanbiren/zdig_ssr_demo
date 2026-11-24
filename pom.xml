@@ -29,9 +29,11 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<npm.executable>npm</npm.executable>
 		<kotlin.version>2.4.21</kotlin.version>
 		<jte.version>3.2.5</jte.version>
 		<htmx.version>4.0.1</htmx.version>
+		<arrow.version>2.3.0.1</arrow.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -117,6 +119,11 @@
 			<groupId>gg.jte</groupId>
 			<artifactId>jte-spring-boot-starter-4</artifactId>
 			<version>${jte.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.arrow-kt</groupId>
+			<artifactId>arrow-core</artifactId>
+			<version>${arrow.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>gg.jte</groupId>
@@ -301,10 +308,7 @@
 									<generator> it is silently ignored). DAOs trade in POJOs, so
 									<pojos> must be enabled as well.
 								-->
-								<generate>
-									<pojos>true</pojos>
-									<daos>true</daos>
-								</generate>
+
 								<target>
 									<packageName>org.zdigdemo.jooq</packageName>
 									<directory>${project.build.directory}/generated-sources/jooq
@@ -341,7 +345,12 @@
 							<goal>exec</goal>
 						</goals>
 						<configuration>
-							<executable>${project.basedir}/bin/build-css.sh</executable>
+							<executable>${npm.executable}</executable>
+							<workingDirectory>${project.basedir}</workingDirectory>
+							<arguments>
+								<argument>run</argument>
+								<argument>build-prod</argument>
+							</arguments>
 						</configuration>
 					</execution>
 				</executions>
@@ -381,4 +390,19 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- On Windows npm is a .cmd wrapper and cannot be launched as "npm" by ProcessBuilder -->
+		<profile>
+			<id>windows</id>
+			<activation>
+				<os>
+					<family>windows</family>
+				</os>
+			</activation>
+			<properties>
+				<npm.executable>npm.cmd</npm.executable>
+			</properties>
+		</profile>
+	</profiles>
 </project>

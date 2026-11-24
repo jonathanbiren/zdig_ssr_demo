@@ -1,9 +1,9 @@
 package org.zdigdemo.config
 
 import org.jooq.Configuration
-import org.zdigdemo.jooq.tables.daos.KundenDao
+/*import org.zdigdemo.jooq.tables.daos.KundenDao
 import org.zdigdemo.jooq.tables.daos.VerpflichtungenDao
-import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Bean*/
 import org.springframework.context.annotation.Configuration as SpringConfiguration
 
 /**
@@ -18,10 +18,10 @@ import org.springframework.context.annotation.Configuration as SpringConfigurati
 @SpringConfiguration
 class JooqDaoConfig {
 
-	@Bean
+/*	@Bean
 	fun kundenDao(configuration: Configuration): KundenDao = KundenDao(configuration)
 
 	@Bean
 	fun verpflichtungenDao(configuration: Configuration): VerpflichtungenDao =
-		VerpflichtungenDao(configuration)
+		VerpflichtungenDao(configuration)*/
 }
