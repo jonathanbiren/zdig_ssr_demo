@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*
 import org.zdigdemo.core.kunde.Kunde
 import org.zdigdemo.edge.repositories.KundenRepository
 import org.zdigdemo.edge.repositories.KundenSortColumn
-import org.zdigdemo.edge.repositories.SortData
+import org.zdigdemo.edge.repositories.KundenSortData
 import org.zdigdemo.edge.repositories.SortDirection
 import org.zdigdemo.edge.repositories.VerpflichtungRepository
 import org.zdigdemo.jooq.tables.records.KundenRecord
@@ -27,7 +27,7 @@ class KundenController(
     //region Full Page Endpoints
     @GetMapping("/")
     fun kundenMainPage(): String =
-        templates.pagesKundenIndex(kundenRepository.getAllClients().map { it.toViewModel() }, SortData()).render()
+        templates.pagesKundenIndex(kundenRepository.getAllClients().map { it.toViewModel() }, KundenSortData()).render()
 
     @GetMapping("/kunden/{id}/edit")
     fun kundenEditieren(@PathVariable id: UUID): String {
@@ -100,7 +100,6 @@ class KundenController(
         )
     }
 
-// ... existing code ...
 
     //region HTMX endpoints
     @HxRequest
@@ -113,7 +112,7 @@ class KundenController(
         //The repository returns List<KundeViewModel>. The full template model is constructed in the controller
         //It is the KundenSortColumn enmum (allowList) as well as the SortDirection, which takes care of the input validation
         val sortierInformation =
-            SortData(
+            KundenSortData(
                 sortColumn = KundenSortColumn.fromRequestName(sortColumn),
                 sortDirection = SortDirection.create(sortDirection)
             )
@@ -153,7 +152,7 @@ data class KundeDTO(
     var istBesondersSchuetzenswert: Boolean
 )
 
-fun KundenRecord.toDTO(): KundeDTO = KundeDTO(
+private fun KundenRecord.toDTO(): KundeDTO = KundeDTO(
     id = id!!,
     name = name!!,
     zsNummer = zsNummer!!.toString(),
@@ -173,7 +172,7 @@ data class KundeViewModel(
     val istBesondersSchuetzenswert: Boolean,
 )
 
-fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
+private fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
     id = id.toString(),
     kurzname = kurzname!!,
     name = name!!,
@@ -183,7 +182,7 @@ fun KundenRecord.toViewModel(): KundeViewModel = KundeViewModel(
     istBesondersSchuetzenswert = besondersSchuetzenswert!!
 )
 
-fun KundeDTO.toKunde() = Kunde.create(
+private fun KundeDTO.toKunde() = Kunde.create(
         id = id,
         kundenName = name,
         kundenKurzname = kurzname,

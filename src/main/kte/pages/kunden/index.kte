@@ -1,8 +1,8 @@
 @import org.zdigdemo.edge.controller.KundeViewModel
-@import org.zdigdemo.edge.repositories.SortData
+@import org.zdigdemo.edge.repositories.KundenSortData
 
 @param kundenListe: List<KundeViewModel>
-@param sortierInformation: SortData
+@param sortierInformation: KundenSortData
 <%--You can compute values from the data which is passed into the template --%>
 !{val anzahlElementeInKundenliste = kundenListe.size}
 

@@ -1,0 +1,73 @@
+@import org.zdigdemo.edge.repositories.VerpflichtungSortData
+@import org.zdigdemo.edge.controller.VerpflichtungViewModel2
+@import org.zdigdemo.edge.repositories.SortDirection
+
+@param verpflichtungenListe: List<VerpflichtungViewModel2>
+@param sortierInformation: VerpflichtungSortData
+
+<table class="table table-pin-rows table-zebra table-lg">
+    <thead>
+    <tr>
+        @for(entry in sortierInformation.columnNames)
+            !{val currentColumnIsSortingColumn = sortierInformation.sortColumn.requestName == entry.requestName}
+            !{val nextSortDirection = if(currentColumnIsSortingColumn) sortierInformation.sortDirection.invert() else SortDirection.ASC}
+
+            <th>
+                <button
+                        class="btn btn-ghost"
+                        hx-trigger="click"
+                        hx-get="/verpflichtungen"
+                        hx-target="#verpflichtungstabelleContainer"
+                        hx-swap="innerHTML"
+                        hx-include="#searchInput"
+                        hx-vals='{
+							"sortColumn": "${entry.requestName}",
+							"sortDirection": "${nextSortDirection.value}"
+						}'
+                >
+                    ${entry.viewName}
+                    @if(currentColumnIsSortingColumn)
+                        @if(sortierInformation.sortDirection.isAscending())
+                            ⬇️
+                        @else
+                            ⬆️
+                        @endif
+                    @endif
+                </button>
+            </th>
+        @endfor
+        <th>Aktion</th>
+    </tr>
+    </thead>
+    <tbody>
+    @for(verpflichtung in verpflichtungenListe)
+        <tr class="cursor-pointer row-hover"
+            @click="detailViewOpen = true"
+            hx-trigger="click"
+            hx-get="/verpflichtung/${verpflichtung.id}/detail"
+            hx-target="#detail-view-content"
+            hx-swap="innerHTML"
+            hx-sync="this:replace"
+            hx-indicator="#kunden-detail-loading">
+
+            <td>${verpflichtung.verpflichtungName}</td>
+            <td>${verpflichtung.kundeName}</td>
+            <td>${verpflichtung.verpflichtungBetrag}</td>
+            <td @click.stop>
+                <a class="btn btn-neutral btn-sm"
+                   href="/verpflichtung/${verpflichtung.id}/edit">
+                    Edit
+                </a>
+                <button class="btn btn-neutral btn-sm"
+                        hx-trigger="click"
+                        hx-confirm="Sind Sie sich sicher, dass Sie den Kunden löschen wollen?"
+                        hx-delete="/verpflichtung/${verpflichtung.id}"
+                >
+                    Delete
+                </button>
+            </td>
+        </tr>
+
+    @endfor
+    </tbody>
+</table>

@@ -37,26 +37,28 @@ import org.springframework.security.web.SecurityFilterChain
 @Configuration
 class SecurityConfig {
 
-	@Bean
-	fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
-		http
-			.authorizeHttpRequests { requests ->
-				requests
-					.requestMatchers(
-						"/",
-						"/htmx-test",
-						"/wohnungen",
-						"/wohnungen/**",
-						"/kunden",
-						"/kunden/**",
-						"/css/**",
-						"/webjars/**",
-						"/favicon.ico"
-					).permitAll()
-					.anyRequest().authenticated()
-			}
-			.csrf { csrfConfigurer -> csrfConfigurer.disable() }
-			.formLogin { }
-			.httpBasic { }
-			.build()
+    @Bean
+    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
+        http
+            .authorizeHttpRequests { requests ->
+                requests
+                    .requestMatchers(
+                        "/",
+                        "/htmx-test",
+                        "/wohnungen",
+                        "/wohnungen/**",
+                        "/kunden",
+                        "/kunden/**",
+                        "/verpflichtungen",
+                        "/verpflichtungen/**",
+                        "/css/**",
+                        "/webjars/**",
+                        "/favicon.ico"
+                    ).permitAll()
+                    .anyRequest().authenticated()
+            }
+            .csrf { csrfConfigurer -> csrfConfigurer.disable() }
+            .formLogin { }
+            .httpBasic { }
+            .build()
 }

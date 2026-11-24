@@ -65,13 +65,13 @@ class KundenRepository(
 	}
 
 	fun getClients(
-		sortData: SortData = SortData(),
+		kundenSortData: KundenSortData = KundenSortData(),
 		searchTerm: String?
 	): List<KundenRecord> {
 
-		val sortField = when (sortData.sortDirection) {
-			SortDirection.ASC -> sortData.sortColumn.field.asc()
-			SortDirection.DESC -> sortData.sortColumn.field.desc()
+		val sortField = when (kundenSortData.sortDirection) {
+			SortDirection.ASC -> kundenSortData.sortColumn.field.asc()
+			SortDirection.DESC -> kundenSortData.sortColumn.field.desc()
 		}
 
 		if (searchTerm.isNullOrEmpty()) {
@@ -166,7 +166,7 @@ enum class KundenSortColumn(
 	}
 }
 
-data class SortData(
+data class KundenSortData(
 	val columnNames: EnumEntries<KundenSortColumn> = KundenSortColumn.entries,
 	val sortColumn: KundenSortColumn = KundenSortColumn.KURZNAME,
 	val sortDirection: SortDirection = SortDirection.ASC
@@ -184,13 +184,5 @@ data class SortData(
 
 
 //KundenRecord ist DSLContext type
-fun Kunde.toRecord(): KundenRecord = KundenRecord(
-    id = id,
-    kurzname = kundenKurzname.value,
-    name = kundenName.value,
-    zsNummer = kundenZsNummer.value,
-    adresse = adresse,
-    status = status,
-    besondersSchuetzenswert = besondersSchuetzenswert
-)
+
 //endregion

@@ -1,9 +1,9 @@
 @import org.zdigdemo.edge.controller.KundeViewModel
-@import org.zdigdemo.edge.repositories.SortData
+@import org.zdigdemo.edge.repositories.KundenSortData
 @import org.zdigdemo.edge.repositories.SortDirection
 
 @param kundenListe: List<KundeViewModel>
-@param sortierInformation: SortData
+@param sortierInformation: KundenSortData
 
 <table class="table table-pin-rows table-zebra table-lg">
 	<thead>
