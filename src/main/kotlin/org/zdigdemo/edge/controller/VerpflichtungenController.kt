@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import org.zdigdemo.edge.repositories.SortDirection
+import org.zdigdemo.edge.repositories.VerpflichtungPage
 import org.zdigdemo.edge.repositories.VerpflichtungRepository
 import org.zdigdemo.edge.repositories.VerpflichtungSortColumn
 import org.zdigdemo.edge.repositories.VerpflichtungSortData
@@ -32,9 +33,9 @@ class VerpflichtungenController(
 		@RequestParam(required = false) sucheingabe: String?,
 		@RequestHeader("HX-Request", required = false) hxRequest: String?
 	): String {
-		val sortierInformation = VerpflichtungSortData(
-			sortColumn = VerpflichtungSortColumn.fromRequestName(sortColumn),
-			sortDirection = SortDirection.create(sortDirection)
+		val sortierInformation = createSortData(
+			sortColumn = sortColumn,
+			sortDirection = sortDirection
 		)
 
 		val verpflichtungenPage = verpflichtungRepository.getVerpflichtungen(
@@ -43,17 +44,15 @@ class VerpflichtungenController(
 		)
 
 		return if (hxRequest == "true") {
-			templates.pagesVerpflichtungenPartialsObligationTableWithSearchResultAmount(
-				verpflichtungenListe = verpflichtungenPage.data,
-				anzahlSuchergebnisse = verpflichtungenPage.amountSearchResult,
+			renderSearchResult(
+				verpflichtungenPage = verpflichtungenPage,
 				sortierInformation = sortierInformation
-			).render()
+			)
 		} else {
-			templates.pagesVerpflichtungenIndex(
-				verpflichtungenListe = verpflichtungenPage.data,
-				gesamtanzahlVerpflichtungen = verpflichtungRepository.getAllVerpflichtungenCount(),
+			renderIndexPage(
+				verpflichtungenPage = verpflichtungenPage,
 				sortierInformation = sortierInformation
-			).render()
+			)
 		}
 	}
 
@@ -65,9 +64,9 @@ class VerpflichtungenController(
 		@RequestParam(required = false) sortDirection: String?,
 		@RequestParam(required = false) sucheingabe: String?
 	): String {
-		val sortierInformation = VerpflichtungSortData(
-			sortColumn = VerpflichtungSortColumn.fromRequestName(sortColumn),
-			sortDirection = SortDirection.create(sortDirection)
+		val sortierInformation = createSortData(
+			sortColumn = sortColumn,
+			sortDirection = sortDirection
 		)
 
 		val verpflichtungenPage = verpflichtungRepository.getNextVerpflichtungenPage(
@@ -81,6 +80,35 @@ class VerpflichtungenController(
 			sortierInformation = sortierInformation
 		).render()
 	}
+
+	private fun createSortData(
+		sortColumn: String?,
+		sortDirection: String?,
+	): VerpflichtungSortData =
+		VerpflichtungSortData(
+			sortColumn = VerpflichtungSortColumn.fromRequestName(sortColumn),
+			sortDirection = SortDirection.create(sortDirection)
+		)
+
+	private fun renderSearchResult(
+		verpflichtungenPage: VerpflichtungPage,
+		sortierInformation: VerpflichtungSortData,
+	): String =
+		templates.pagesVerpflichtungenPartialsObligationTableWithSearchResultAmount(
+			verpflichtungenListe = verpflichtungenPage.data,
+			anzahlSuchergebnisse = verpflichtungenPage.amountSearchResult,
+			sortierInformation = sortierInformation
+		).render()
+
+	private fun renderIndexPage(
+		verpflichtungenPage: VerpflichtungPage,
+		sortierInformation: VerpflichtungSortData,
+	): String =
+		templates.pagesVerpflichtungenIndex(
+			verpflichtungenListe = verpflichtungenPage.data,
+			gesamtanzahlVerpflichtungen = verpflichtungRepository.getAllVerpflichtungenCount(),
+			sortierInformation = sortierInformation
+		).render()
 }
 
 data class VerpflichtungViewModel2(

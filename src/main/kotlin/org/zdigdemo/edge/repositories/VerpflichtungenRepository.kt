@@ -172,6 +172,7 @@ class VerpflichtungRepository(
 		}
 
 		val similarity = wordSimilarity(DSL.`val`(sucheingabe), VERPFLICHTUNGEN_SUCHSPALTE)
+
 		val lastSeenSimilarity = dsl.select(similarity)
 			.from(VERPFLICHTUNGEN)
 			.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
