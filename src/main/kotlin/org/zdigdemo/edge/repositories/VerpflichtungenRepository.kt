@@ -3,12 +3,15 @@ package org.zdigdemo.edge.repositories
 import org.jooq.DSLContext
 import org.jooq.Field
 import org.jooq.Record
+import org.jooq.SortField
 import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import org.zdigdemo.config.ObligationSearchProperties
+import org.zdigdemo.jooq.routines.references.wordSimilarity
 import org.zdigdemo.jooq.tables.records.VerpflichtungenRecord
 import org.zdigdemo.jooq.tables.references.KUNDEN
+import org.zdigdemo.jooq.tables.references.PERSONEN
 import org.zdigdemo.jooq.tables.references.VERPFLICHTUNGEN
 import java.time.OffsetDateTime
 import java.util.*
@@ -30,61 +33,112 @@ class VerpflichtungRepository(
 		DSL.inline(" "),
 		VERPFLICHTUNGEN.BETRAG_CENT.cast(String::class.java),
 		DSL.inline(" "),
-		KUNDEN.NAME
+		KUNDEN.NAME,
+		DSL.inline(" "),
+		PERSONEN.VORNAME,
+		DSL.inline(" "),
+		PERSONEN.NACHNAME
 	)
 
 	fun getAllVerpflichtungenCount(): Int =
 		dsl.fetchCount(VERPFLICHTUNGEN)
 
-	private fun getVerpflichtungenCountFittingSearchterm(searchTerm: String): Int =
-		dsl.fetchCount(
+	private fun getVerpflichtungenCountFittingSearchterm(searchTerm: String): Int {
+		val searchCondition = if (searchTerm.length < 3) {
+			VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(searchTerm)
+		} else {
+			val similarity = wordSimilarity(DSL.`val`(searchTerm), VERPFLICHTUNGEN_SUCHSPALTE)
+			similarity.greaterOrEqual(obligationSearchProperties.minimumSimilarity.toFloat())
+		}
+
+		return dsl.fetchCount(
 			dsl.select(VERPFLICHTUNGEN.ID)
 				.from(VERPFLICHTUNGEN)
 				.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
-				.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(searchTerm))
+				.join(PERSONEN).on(PERSONEN.ID.eq(VERPFLICHTUNGEN.PERSON_ID))
+				.where(searchCondition)
 		)
+	}
 
-	fun getVerpflichtungen(
-		sortierInformation: VerpflichtungSortData = VerpflichtungSortData(),
-		sucheingabe: String? = "",
-	): VerpflichtungPage {
-        val sortField = when (sortierInformation.sortDirection) {
-            SortDirection.ASC -> sortierInformation.sortColumn.field.asc()
-            SortDirection.DESC -> sortierInformation.sortColumn.field.desc()
-        }
+	private fun getVerpflichtungenSortField(
+		sortierInformation: VerpflichtungSortData,
+	) =
+		when (sortierInformation.sortDirection) {
+			SortDirection.ASC -> sortierInformation.sortColumn.field.asc()
+			SortDirection.DESC -> sortierInformation.sortColumn.field.desc()
+		}
 
-		val baseQuery = dsl.select(
+	private fun verpflichtungenBaseQuery() =
+		dsl.select(
 			VERPFLICHTUNGEN.ID,
 			VERPFLICHTUNGEN.KUNDE_ID,
+			VERPFLICHTUNGEN.PERSON_ID,
 			KUNDEN.NAME,
+			PERSONEN.VORNAME,
+			PERSONEN.NACHNAME,
 			VERPFLICHTUNGEN.BEZEICHNUNG,
 			VERPFLICHTUNGEN.BETRAG_CENT,
 		)
 			.from(VERPFLICHTUNGEN)
 			.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
+			.join(PERSONEN).on(PERSONEN.ID.eq(VERPFLICHTUNGEN.PERSON_ID))
 
-		val filteredQuery = if (sucheingabe.isNullOrEmpty()) {
-			baseQuery
+	private fun verpflichtungenQuery(sucheingabe: String?) =
+		if (sucheingabe.isNullOrEmpty()) {
+			verpflichtungenBaseQuery()
 		} else {
-			baseQuery.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(sucheingabe))
+			verpflichtungenBaseQuery()
+				.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(sucheingabe))
 		}
 
-		val amountSearchResult = if (sucheingabe.isNullOrEmpty()) {
+	private fun getVerpflichtungenCount(sucheingabe: String?): Int =
+		if (sucheingabe.isNullOrEmpty()) {
 			getAllVerpflichtungenCount()
 		} else {
 			getVerpflichtungenCountFittingSearchterm(sucheingabe)
 		}
 
+	fun getVerpflichtungen(
+		sortierInformation: VerpflichtungSortData = VerpflichtungSortData(),
+		sucheingabe: String? = "",
+	): VerpflichtungPage {
+		val sortField = getVerpflichtungenSortField(sortierInformation)
+
+		if (sucheingabe.isNullOrEmpty()) {
+			return VerpflichtungPage(
+				data = verpflichtungenBaseQuery()
+					.orderBy(listOf(sortField, VERPFLICHTUNGEN.ID))
+					.limit(obligationSearchProperties.pageSize)
+					.fetch()
+					.map { it.toVerpflichtungViewModel2() },
+				amountSearchResult = getAllVerpflichtungenCount()
+			)
+		}
+
+		if (sucheingabe.length < 3) {
+			return VerpflichtungPage(
+				data = verpflichtungenBaseQuery()
+					.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(sucheingabe))
+					.orderBy(listOf(sortField, VERPFLICHTUNGEN.ID))
+					.limit(obligationSearchProperties.pageSize)
+					.fetch()
+					.map { it.toVerpflichtungViewModel2() },
+				amountSearchResult = getVerpflichtungenCountFittingSearchterm(sucheingabe)
+			)
+		}
+
+		val similarity = wordSimilarity(DSL.`val`(sucheingabe), VERPFLICHTUNGEN_SUCHSPALTE)
+
 		return VerpflichtungPage(
-			data = filteredQuery
-				.orderBy(listOf(sortField, VERPFLICHTUNGEN.ID))
+			data = verpflichtungenBaseQuery()
+				.where(similarity.greaterOrEqual(obligationSearchProperties.minimumSimilarity.toFloat()))
+				.orderBy(listOf(similarity.desc(), sortField, VERPFLICHTUNGEN.ID))
 				.limit(obligationSearchProperties.pageSize)
 				.fetch()
 				.map { it.toVerpflichtungViewModel2() },
-			amountSearchResult = amountSearchResult
+			amountSearchResult = getVerpflichtungenCountFittingSearchterm(sucheingabe)
 		)
-    }
-
+	}
 
 	fun getNextVerpflichtungenPage(
 		lastSeenId: UUID,
@@ -96,30 +150,39 @@ class VerpflichtungRepository(
 			sortierInformation = sortierInformation
 		) ?: return emptyList()
 
-		val sortField = when (sortierInformation.sortDirection) {
-			SortDirection.ASC -> sortierInformation.sortColumn.field.asc()
-			SortDirection.DESC -> sortierInformation.sortColumn.field.desc()
+		val sortField = getVerpflichtungenSortField(sortierInformation)
+
+		if (sucheingabe.isNullOrEmpty()) {
+			return verpflichtungenBaseQuery()
+				.orderBy(listOf(sortField, VERPFLICHTUNGEN.ID))
+				.seek(lastSeenSortValue, lastSeenId)
+				.limit(obligationSearchProperties.pageSize)
+				.fetch()
+				.map { it.toVerpflichtungViewModel2() }
 		}
 
-		val baseQuery = dsl.select(
-			VERPFLICHTUNGEN.ID,
-			VERPFLICHTUNGEN.KUNDE_ID,
-			KUNDEN.NAME,
-			VERPFLICHTUNGEN.BEZEICHNUNG,
-			VERPFLICHTUNGEN.BETRAG_CENT,
-		)
+		if (sucheingabe.length < 3) {
+			return verpflichtungenBaseQuery()
+				.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(sucheingabe))
+				.orderBy(listOf(sortField, VERPFLICHTUNGEN.ID))
+				.seek(lastSeenSortValue, lastSeenId)
+				.limit(obligationSearchProperties.pageSize)
+				.fetch()
+				.map { it.toVerpflichtungViewModel2() }
+		}
+
+		val similarity = wordSimilarity(DSL.`val`(sucheingabe), VERPFLICHTUNGEN_SUCHSPALTE)
+		val lastSeenSimilarity = dsl.select(similarity)
 			.from(VERPFLICHTUNGEN)
 			.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
+			.join(PERSONEN).on(PERSONEN.ID.eq(VERPFLICHTUNGEN.PERSON_ID))
+			.where(VERPFLICHTUNGEN.ID.eq(lastSeenId))
+			.fetchOne(similarity) ?: return emptyList()
 
-		val filteredQuery = if (sucheingabe.isNullOrEmpty()) {
-			baseQuery
-		} else {
-			baseQuery.where(VERPFLICHTUNGEN_SUCHSPALTE.containsIgnoreCase(sucheingabe))
-		}
-
-		return filteredQuery
-			.orderBy(listOf(sortField, VERPFLICHTUNGEN.ID))
-			.seek(lastSeenSortValue, lastSeenId)
+		return verpflichtungenBaseQuery()
+			.where(similarity.greaterOrEqual(obligationSearchProperties.minimumSimilarity.toFloat()))
+			.orderBy(listOf(similarity.desc(), sortField, VERPFLICHTUNGEN.ID))
+			.seek(lastSeenSimilarity, lastSeenSortValue, lastSeenId)
 			.limit(obligationSearchProperties.pageSize)
 			.fetch()
 			.map { it.toVerpflichtungViewModel2() }
@@ -132,6 +195,7 @@ class VerpflichtungRepository(
 		dsl.select(sortierInformation.sortColumn.field)
 			.from(VERPFLICHTUNGEN)
 			.join(KUNDEN).on(KUNDEN.ID.eq(VERPFLICHTUNGEN.KUNDE_ID))
+			.join(PERSONEN).on(PERSONEN.ID.eq(VERPFLICHTUNGEN.PERSON_ID))
 			.where(VERPFLICHTUNGEN.ID.eq(lastSeenId))
 			.fetchOne(sortierInformation.sortColumn.field)
 
@@ -197,8 +261,8 @@ private fun Record.toVerpflichtungViewModel2(): org.zdigdemo.edge.controller.Ver
 		kundeName = get(KUNDEN.NAME)!!,
 		verpflichtungName = get(VERPFLICHTUNGEN.BEZEICHNUNG)!!,
 		verpflichtungBetrag = get(VERPFLICHTUNGEN.BETRAG_CENT)!!.toString(),
-		personId = UUID.randomUUID().toString(),
-		personName = "Test"
+		personId = get(VERPFLICHTUNGEN.PERSON_ID)!!.toString(),
+		personName = "${get(PERSONEN.VORNAME)!!} ${get(PERSONEN.NACHNAME)!!}"
 	)
 
 data class VerpflichtungSortData(
@@ -217,6 +281,7 @@ enum class VerpflichtungSortColumn(
 ) {
     BEZEICHNUNG("bezeichnung", "Bezeichnung", VERPFLICHTUNGEN.BEZEICHNUNG),
     KUNDENNAME("kundenname", "Kundenname", KUNDEN.NAME),
+    PERSONENNAME("personenname", "Person", PERSONEN.NACHNAME),
     BETRAG("betrag", "Betrag", VERPFLICHTUNGEN.BETRAG_CENT);
 
     companion object {
