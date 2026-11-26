@@ -5,6 +5,8 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import io.github.wimdeblauwe.htmx.spring.boot.mvc.HxRequest
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
@@ -31,7 +33,6 @@ class VerpflichtungenController(
 		@RequestParam(required = false) sortColumn: String?,
 		@RequestParam(required = false) sortDirection: String?,
 		@RequestParam(required = false) sucheingabe: String?,
-		@RequestHeader("HX-Request", required = false) hxRequest: String?
 	): String {
 		val sortierInformation = createSortData(
 			sortColumn = sortColumn,
@@ -43,17 +44,49 @@ class VerpflichtungenController(
 			sucheingabe = sucheingabe
 		)
 
-		return if (hxRequest == "true") {
-			renderSearchResult(
-				verpflichtungenPage = verpflichtungenPage,
-				sortierInformation = sortierInformation
+		return renderIndexPage(
+			verpflichtungenPage = verpflichtungenPage,
+			sortierInformation = sortierInformation
+		)
+	}
+
+	@HxRequest
+	@DeleteMapping("/verpflichtungen/{id}")
+	fun verpflichtungLoeschen(@PathVariable id: UUID): ResponseEntity<String> {
+		return try {
+			verpflichtungRepository.deleteById(id)
+			val totalAmountOfVerpflichtungenLeft = verpflichtungRepository.getAllVerpflichtungenCount()
+
+			ResponseEntity.ok(
+				templates.pagesVerpflichtungenPartialsVerpflichtungenAnzahl(totalAmountOfVerpflichtungenLeft).render()
 			)
-		} else {
-			renderIndexPage(
-				verpflichtungenPage = verpflichtungenPage,
-				sortierInformation = sortierInformation
-			)
+		} catch (exception: Exception) {
+			ResponseEntity.internalServerError()
+				.body("Verpflichtung konnte nicht gelöscht werden: ${exception.message}")
 		}
+	}
+
+	@HxRequest
+	@GetMapping("/verpflichtungen")
+	fun indexHx(
+		@RequestParam(required = false) sortColumn: String?,
+		@RequestParam(required = false) sortDirection: String?,
+		@RequestParam(required = false) sucheingabe: String?,
+	): String {
+		val sortierInformation = createSortData(
+			sortColumn = sortColumn,
+			sortDirection = sortDirection
+		)
+
+		val verpflichtungenPage = verpflichtungRepository.getVerpflichtungen(
+			sortierInformation = sortierInformation,
+			sucheingabe = sucheingabe
+		)
+
+		return renderSearchResult(
+			verpflichtungenPage = verpflichtungenPage,
+			sortierInformation = sortierInformation
+		)
 	}
 
 	@HxRequest

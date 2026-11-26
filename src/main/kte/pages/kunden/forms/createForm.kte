@@ -3,13 +3,12 @@
 
 @param kunde: KundeDTO
 @template.layout.layout(title = "Neuer Kunde", content = @`
-    <section
-            class="mx-auto mt-2 flex h-full w-full max-w-7xl flex-col gap-4 p-4"
-    >
-        <div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-200 p-4 shadow-sm">
-            <h1 class="text-xl text-white">Einen neuen Kunden anlegen</h1>
+    <section class="mx-auto mt-2 flex h-full w-full max-w-3xl flex-col gap-4 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-4 rounded-box bg-base-100 p-4 shadow-sm">
+            <h1 class="text-xl font-medium">Einen neuen Kunden anlegen</h1>
         </div>
-        <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md">
+
+        <div class="w-full rounded-xl bg-white shadow-md">
             <form class="p-6"
                   hx-post="/kunden/${kunde.id.toString()}/save"
                   hx-target="#form-errors"

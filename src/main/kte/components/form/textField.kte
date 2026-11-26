@@ -1,0 +1,37 @@
+@param name: String
+@param label: String
+@param value: String? = null
+@param required: Boolean = false
+@param validationEndpoint: String? = null
+@param wrapperClass: String = ""
+@param inputClass: String = ""
+@param labelClass: String = ""
+@param placeholder: String = ""
+
+<div class="${wrapperClass}">
+    <fieldset class="fieldset">
+        <label for="${name}" class="label ${labelClass}">
+            ${label}
+            @if(required)
+                <span class="text-red-500">*</span>
+            @endif
+        </label>
+
+        <input
+                type="text"
+                name="${name}"
+                id="${name}"
+                value="${value ?: ""}"
+                placeholder="${placeholder}"
+                class="input input-bordered w-full ${inputClass}"
+                hx-get="${validationEndpoint}"
+                hx-trigger="${if (validationEndpoint != null) "input changed delay:300ms" else null}"
+                hx-target="${if (validationEndpoint != null) "next span" else null}"
+                hx-swap="${if (validationEndpoint != null) "outerHTML" else null}"
+        >
+
+        @if(validationEndpoint != null)
+            <span class="text-sm empty:hidden"></span>
+        @endif
+    </fieldset>
+</div>

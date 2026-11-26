@@ -174,10 +174,26 @@ class KundenController(
 
 	@HxRequest
 	@DeleteMapping("/kunden/{id}")
-	fun kundenLoeschen(@PathVariable id: UUID): String {
+	fun kundenLoeschen(@PathVariable id: UUID): ResponseEntity<String> {
+		val verpflichtungen = verpflichtungenRepository.findByKundeId(id)
+
+		if (verpflichtungen.isNotEmpty()) {
+			return ResponseEntity.status(409)
+				.header("HX-Retarget", "#toast-container")
+				.header("HX-Reswap", "beforeend")
+				.body(
+					templates.partialsToast(
+						message = "Kunde kann nicht gelöscht werden, da noch Verpflichtungen vorhanden sind.",
+						type = "error"
+					).render()
+				)}
+
 		kundenRepository.deleteClient(id)
 		val totalAmountOfClientsLeft = kundenRepository.getAllClientsCount()
-		return templates.pagesKundenPartialsKundenAnzahl(totalAmountOfClientsLeft).render()
+
+		return ResponseEntity.ok(
+			templates.pagesKundenPartialsKundenAnzahl(totalAmountOfClientsLeft).render()
+		)
 	}
 	//endregion
 }

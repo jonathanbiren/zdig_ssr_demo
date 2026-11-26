@@ -1,0 +1,51 @@
+@import io.github.sgruendel.lucide.jte.LucideIcons
+
+@param message: String
+@param type: String = "error"
+
+<div
+    data-toast
+    class="w-96 max-w-[calc(100vw-2rem)] rounded-box border border-error bg-error text-error-content p-4 shadow-xl"
+>
+    <div class="flex items-start gap-3">
+        <div class="shrink-0">
+            ${LucideIcons.lucideTriangleExclamationPoint()
+                .size(24)
+                .cssClass("h-6 w-6")
+                .attr("aria-hidden", "true")}
+        </div>
+
+        <div class="min-w-0 flex-1">
+            <div class="font-semibold">
+                Aktion nicht möglich
+            </div>
+            <div class="text-sm">
+                ${message}
+            </div>
+        </div>
+
+        <button
+            type="button"
+            class="btn btn-ghost btn-xs text-error-content"
+            onclick="this.closest('[data-toast]').remove()"
+            aria-label="Toast schließen"
+        >
+            ✕
+        </button>
+    </div>
+</div>
+
+<script>
+    {
+        const toastScript = document.currentScript;
+        const toast = toastScript.previousElementSibling;
+
+        setTimeout(function () {
+            if (toast && toast.hasAttribute("data-toast")) {
+                toast.remove();
+            }
+
+            toastScript.remove();
+        }, 6000);
+    }
+</script>

@@ -6,6 +6,7 @@
 <html lang="de">
 @template.components.head(title = title)
 <div class="flex h-screen w-full flex-col overflow-hidden bg-gray-200">
+	<div id="toast-container" class="toast toast-top toast-end z-50"></div>
 	<header class="shrink-0">
 		<nav class="navbar bg-base-100 shadow-sm" hx-boost="true">
 			<a class="btn btn-ghost text-xl" href="/">Kunden</a>

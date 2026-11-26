@@ -1,0 +1,9 @@
+@param verpflichtungenAnzahl: Int
+
+<%-- Empty partial targets the the element from which the event was sent. So in our case the clicked row relative to the delete button;
+ outerHTML of nothing removes the row --%>
+<%-- closest tr is relative to the DOM element from which the request was sent. An empty hx-partial means the element will be deleted from the DOM --%>
+<hx-partial hx-target="closest tr" hx-swap="outerHTML"></hx-partial>
+<hx-partial id="verpflichtungenAnzahlContainer" hx-swap="outerHTML">
+    <span id="verpflichtungenAnzahlContainer" class="badge badge-lg badge-primary">${verpflichtungenAnzahl}</span>
+</hx-partial>

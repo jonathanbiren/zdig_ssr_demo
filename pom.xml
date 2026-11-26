@@ -130,6 +130,11 @@
 			<artifactId>jte-kotlin</artifactId>
 			<version>${jte.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.github.sgruendel</groupId>
+			<artifactId>lucide-jte</artifactId>
+			<version>1.77.0</version>
+		</dependency>
 		<!--		jte-models enables the generation of components that you can use in Spring
 		MVC-->
 		<dependency>

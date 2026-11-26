@@ -3,16 +3,17 @@
 @plugin "daisyui" {
     themes: false;
 }
-@plugin "daisyui/theme" {
-    name: "sowo";
-    default: true;
-    prefersdark: true;
-    color-scheme: dark;
 
-    --color-base-100: oklch(20% 0.02 255);
-    --color-base-200: oklch(24% 0.02 255);
-    --color-base-300: oklch(29% 0.02 255);
-    --color-base-content: oklch(92% 0.01 255);
+@plugin "daisyui/theme" {
+    name: "sowo-light";
+    default: true;
+    prefersdark: false;
+    color-scheme: light;
+
+    --color-base-100: oklch(100% 0 0);
+    --color-base-200: oklch(97% 0.01 255);
+    --color-base-300: oklch(92% 0.01 255);
+    --color-base-content: oklch(20% 0.02 255);
 
     --color-primary: oklch(62% 0.19 255);
     --color-primary-content: oklch(98% 0.01 255);
@@ -57,10 +58,94 @@
     --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
+@plugin "daisyui/theme" {
+    name: "sowo-dark";
+    default: false;
+    prefersdark: false;
+    color-scheme: dark;
+
+    --color-base-100: oklch(20% 0.02 255);
+    --color-base-200: oklch(24% 0.02 255);
+    --color-base-300: oklch(29% 0.02 255);
+    --color-base-content: oklch(92% 0.01 255);
+
+    --color-primary: oklch(62% 0.19 255);
+    --color-primary-content: oklch(98% 0.01 255);
+
+    --color-secondary: oklch(0.668 0.114 206.032);
+    --color-secondary-content: oklch(20% 0.04 195);
+
+    --color-accent: oklch(76% 0.15 75);
+    --color-accent-content: oklch(25% 0.05 75);
+
+    --color-neutral: oklch(28% 0.02 255);
+    --color-neutral-content: oklch(92% 0.01 255);
+
+    --color-info: oklch(72% 0.14 235);
+    --color-info-content: oklch(20% 0.04 235);
+
+    --color-success: oklch(65% 0.17 150);
+    --color-success-content: oklch(98% 0.01 150);
+
+    --color-warning: oklch(78% 0.16 80);
+    --color-warning-content: oklch(25% 0.05 80);
+
+    --color-error: oklch(62% 0.22 25);
+    --color-error-content: oklch(98% 0.01 25);
+
+    --radius-selector: 0.5rem;
+    --radius-field: 0.375rem;
+    --radius-box: 0.75rem;
+
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+@source "../../kte/**/*.kte";
+@source "../../kotlin/**/*.kt";
+
+@theme {
+    --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
 @layer base {
     html {
-        color-scheme: dark;
+        color-scheme: light dark;
     }
+}
+
+@utility input {
+    @apply rounded-md border-base-300 shadow-sm transition-shadow;
+
+    &:focus,
+    &:focus-within,
+    &:focus-visible {
+        outline: none;
+        outline-offset: 0;
+        border-color: oklch(70% 0.02 255);
+        box-shadow: 0 0 0 3px oklch(70% 0.02 255 / 0.28);
+    }
+}
+
+@utility select {
+    @apply rounded-md border-base-300 shadow-sm transition-shadow;
+
+    &:focus,
+    &:focus-within,
+    &:focus-visible {
+        outline: none;
+        outline-offset: 0;
+        border-color: oklch(70% 0.02 255);
+        box-shadow: 0 0 0 3px oklch(70% 0.02 255 / 0.28);
+    }
+}
+
+@utility label {
+    @apply text-sm font-medium;
 }
 
 @layer components {
